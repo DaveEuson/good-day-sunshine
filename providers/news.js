@@ -38,5 +38,5 @@ export async function fetchData(cfg) {
   }));
   const items = results.flat().sort((a, b) => b.t - a.t).slice(0, cfg.max ?? 10);
   if (!items.length) return { error: "No stories fetched. Check feed URLs." };
-  return { items: items.map((i) => ({ text: i.title, url: i.url, badge: `${i.source}${i.t ? " · " + age(i.t) : ""}` })) };
+  return { items: items.map((i) => ({ text: i.title, url: i.url, sub: `${i.source}${i.t ? " · " + age(i.t) : ""}` })) };
 }

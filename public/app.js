@@ -67,7 +67,7 @@ function widget(w) {
     if (w.items?.length)
       body += `<ul class="items">${w.items.map((i) => `<li>${link(i, "t")}${esc(i.text)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}${endLink(i)}<span class="b">${esc(i.badge ?? "")}</span></li>`).join("")}</ul>`;
   }
-  return `<section class="${cls}" data-wid="${w.id}"><h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
+  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}"><h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
 }
 
 // ---------- garden ----------
@@ -100,7 +100,7 @@ function gardenCard(w) {
       <div class="seeds">${g.themes.map((t) => t.unlocked ? `<span class="owned">${esc(THEMES[t.id]?.name ?? t.id)}</span>` : `<button data-g="buy" data-kind="theme" data-id="${t.id}" ${g.tokens < t.cost ? "disabled" : ""}>${esc(THEMES[t.id]?.name ?? t.id)} · 🪙 ${t.cost}</button>`).join("")}</div>
       ${g.harvested.length ? `<div class="hint">Harvested: ${g.harvested.map((h) => g.seeds.find((s) => s.id === h.seed)?.final ?? "").join(" ")}</div>` : ""}
     </div>`;
-  const log = g.log?.length ? `<div class="glog">${g.log.slice(0, 3).map((l) => `<div>${esc(l)}</div>`).join("")}</div>` : "";
+  const log = g.log?.length ? `<div class="glog">${`<div>${esc(g.log[0])}</div>`}</div>` : "";
   return `<section class="card widget garden" data-wid="${w.id}"><h2><span class="icon">❀</span>${esc(w.title)}</h2>${body}${shop}${log}</section>`;
 }
 
@@ -129,6 +129,7 @@ function heroLine(ws) {
   const att = ws.flatMap((w) => w.attention ?? []);
   const high = att.filter((a) => a.level === "high").length;
   bits.push(att.length ? `${att.length} need you${high ? ` (${high} urgent)` : ""}` : "nothing needs you");
+  $("#hero").classList.toggle("hot", high > 0);
   const mail = ws.find((w) => w.type === "email" && w.stats);
   if (mail) bits.push(`${mail.stats[0].value} unread`);
   return bits.join(" · ");
@@ -340,10 +341,10 @@ async function load(refresh = false) {
   $("#greeting").textContent = greeting(data.user);
   $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   $("#chat-model").textContent = data.chatModel;
-  const ready = data.widgets.filter((w) => !w.setup), pending = data.widgets.filter((w) => w.setup);
+  const ready = data.widgets.filter((w) => !w.setup && !w.error), pending = data.widgets.filter((w) => w.setup), broken = data.widgets.filter((w) => w.error);
   $("#grid").innerHTML = ready.map(widget).join("");
-  $("#setup-strip").hidden = !pending.length || !!MODE;
-  $("#setup-strip").innerHTML = pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b> <button id="setup-go">Add keys</button>` : "";
+  $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
+  $("#setup-strip").innerHTML = [broken.length ? `<span class="err">${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
   $("#setup-go")?.addEventListener("click", openSettings);
   $("#hero").textContent = heroLine(data.widgets);
   $("#status").textContent = `Updated ${new Date().toLocaleTimeString()}`;

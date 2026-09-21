@@ -4,7 +4,7 @@ import { isClaude, claudeText } from "./ai.js";
 function summarize(widgets) {
   return widgets.map((w) => {
     if (w.setup || w.error) return `${w.title}: not configured`;
-    const stats = (w.stats ?? []).map((s) => `${s.label}=${s.value}`).join(", ");
+    const stats = (w.stats ?? []).map((s) => `${s.label}=${s.value}${s.delta != null ? ` (${s.delta >= 0 ? "+" : ""}${s.delta} vs 7d ago)` : ""}`).join(", ");
     const att = (w.attention ?? []).slice(0, 8).map((a) => `- ${a.text}`).join("\n");
     const items = (w.items ?? []).slice(0, 5).map((i) => `- ${i.text} (${i.badge ?? ""})`).join("\n");
     return `${w.title}: ${stats}\n${att}${items}`.trim();
@@ -30,7 +30,7 @@ export async function brief(input, env) {
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const hour = new Date().getHours();
   const system = `You write a 3-sentence "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
-Rules: plain text, no markdown, no lists, no headings, no emoji. Lead with the most important thing. Copy numbers exactly as digits from DATA (154 stays "154"), never spell them out or change them. If something needs attention, say what to do first. Do not invent data. Sections marked "not configured" get no mention.`;
+Rules: plain text, no markdown, no lists, no headings, no emoji. One to three sentences, shorter is better. Say only what is new, changed, or needs a decision: things needing attention, the first event today, a number that moved (deltas are marked "vs 7d ago"), weather only if it changes plans. Never restate a zero, an unchanged number, or anything already obvious. If nothing needs them, say that in one short sentence and stop. Copy numbers exactly as digits from DATA. Do not invent data. Sections marked "not configured" get no mention.`;
   const data = `DATA:\n${summarize(widgets)}`;
 
   try {
