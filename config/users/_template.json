@@ -3,10 +3,49 @@
   "theme": "paper",
   "accent": "#3b82f6",
   "widgets": [
-    { "type": "github", "user": "your-github-login", "top": 5 },
-    { "type": "youtube" },
-    { "type": "twitch" },
-    { "type": "attention" }
+    {
+      "type": "attention"
+    },
+    {
+      "type": "calendar"
+    },
+    {
+      "type": "weather",
+      "city": "London",
+      "units": "c"
+    },
+    {
+      "type": "email"
+    },
+    {
+      "type": "garden"
+    },
+    {
+      "type": "news",
+      "max": 8
+    },
+    {
+      "type": "github",
+      "user": "your-github-login",
+      "top": 5
+    },
+    {
+      "type": "youtube"
+    },
+    {
+      "type": "twitch"
+    }
   ],
-  "brief": { "enabled": true, "tone": "upbeat" }
+  "brief": {
+    "enabled": true,
+    "tone": "upbeat"
+  },
+  "sound": false,
+  "display": {
+    "cycleSec": 12
+  },
+  "quiet": {
+    "start": "23:00",
+    "end": "07:00"
+  }
 }

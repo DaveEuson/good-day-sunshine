@@ -13,24 +13,57 @@
     <p id="date" class="muted"></p>
   </div>
   <div class="controls">
+    <span id="tokens" class="pill" title="Garden tokens"></span>
+    <span id="clock" class="pill clock"></span>
     <select id="user" title="Profile"></select>
     <select id="theme" title="Theme"></select>
     <input id="accent" type="color" title="Accent">
-    <button id="refresh" title="Refresh data">↻</button>
+    <button id="refresh" title="Refresh data (r)">↻</button>
+    <button id="chat-toggle" title="Chat (c)">💬</button>
+    <button id="settings-toggle" title="Options (o)">⚙</button>
   </div>
 </header>
 
-<section id="brief" class="card brief">
-  <p class="muted">Thinking…</p>
-</section>
+<section id="brief" class="card brief"><p class="muted">Thinking…</p></section>
 
 <main id="grid" class="grid"></main>
 
-<footer class="muted">
-  <span id="status"></span>
-</footer>
+<footer class="muted"><span id="status"></span> <span id="mode-hint"></span></footer>
+
+<aside id="chat" class="chat" hidden>
+  <div class="chat-head"><span>Assistant <span id="chat-model" class="muted"></span></span><button id="chat-clear" title="Clear">✕</button></div>
+  <div id="chat-log" class="chat-log"></div>
+  <form id="chat-form" class="chat-form">
+    <input id="chat-input" placeholder="Ask about your day…" autocomplete="off">
+    <button>➤</button>
+  </form>
+</aside>
+
+<dialog id="settings" class="settings">
+  <form method="dialog" id="settings-form">
+    <h2>Options</h2>
+    <div class="fields">
+      <label>Name <input name="name" required></label>
+      <label>Default theme <select name="theme" id="settings-theme"></select></label>
+      <label>Accent <input name="accent" placeholder="#7aa2ff or blank"></label>
+      <label><input type="checkbox" name="briefEnabled"> Morning brief</label>
+      <label>Brief tone <input name="tone" placeholder="warm, concise"></label>
+      <label><input type="checkbox" name="sound"> Sounds</label>
+      <label>Quiet hours <input name="quietStart" type="time"> to <input name="quietEnd" type="time"> <span class="hint">screen dims, tap to wake</span></label>
+      <label>Small display cycle <input name="cycleSec" type="number" min="3" max="120" style="width:5em"> s</label>
+    </div>
+    <h3>Widgets <span class="hint">check to show, ▲▼ to order, options as JSON</span></h3>
+    <div id="widget-list" class="widget-list"></div>
+    <h3>Display modes</h3>
+    <p class="hint">Append to the URL: <code>?mode=tv</code> big screen, no controls · <code>?mode=small</code> one card at a time, for small always-on panels · <code>?u=name</code> profile.</p>
+    <div class="row end"><button value="cancel" class="ghost">Cancel</button><button value="save" id="settings-save">Save & reload</button></div>
+  </form>
+</dialog>
+
+<div id="night" hidden><div id="night-clock"></div><div class="hint">quiet hours · tap to wake</div></div>
 
 <script src="/themes.js"></script>
+<script src="/sfx.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
