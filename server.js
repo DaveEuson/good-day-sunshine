@@ -156,4 +156,4 @@ http.createServer(async (req, res) => {
   }
   res.writeHead(200, { "Content-Type": MIME[path.extname(file)] ?? "application/octet-stream" });
   fs.createReadStream(file).pipe(res);
-}).listen(PORT, HOST, () => console.log(`life-dashboard → http://localhost:${PORT}  (bound to ${HOST})`));
+}).listen(PORT, HOST, () => console.log(`good-day-sunshine → http://localhost:${PORT}  (bound to ${HOST})`));

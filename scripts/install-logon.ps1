@@ -9,7 +9,7 @@ $open   = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c timeout /t 3 
 $trig   = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $set    = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 
-Register-ScheduledTask -TaskName "LifeDashboard Server" -Action $server -Trigger $trig -Settings $set -Force | Out-Null
-Register-ScheduledTask -TaskName "LifeDashboard Open"   -Action $open   -Trigger $trig -Settings $set -Force | Out-Null
+Register-ScheduledTask -TaskName "GoodDaySunshine Server" -Action $server -Trigger $trig -Settings $set -Force | Out-Null
+Register-ScheduledTask -TaskName "GoodDaySunshine Open"   -Action $open   -Trigger $trig -Settings $set -Force | Out-Null
 Write-Host "Installed. Next logon: server starts, dashboard opens at http://localhost:$port"
-Write-Host "Remove: Unregister-ScheduledTask 'LifeDashboard Server','LifeDashboard Open' -Confirm:`$false"
+Write-Host "Remove: Unregister-ScheduledTask 'GoodDaySunshine Server','GoodDaySunshine Open' -Confirm:`$false"

@@ -1,11 +1,11 @@
 [Unit]
-Description=Life Dashboard kiosk
+Description=Good Day Sunshine kiosk
 After=graphical-session.target
 Wants=graphical-session.target
 
 [Service]
 # edit: host, mode (tv|small), user
-ExecStart=%h/life-dashboard/scripts/kiosk.sh http://192.168.1.10:4242 tv dave
+ExecStart=%h/good-day-sunshine/scripts/kiosk.sh http://192.168.1.10:4242 tv dave
 Restart=always
 RestartSec=5
 Environment=DISPLAY=:0

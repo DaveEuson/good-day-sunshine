@@ -31,7 +31,7 @@ export async function fetchData(cfg) {
   const per = cfg.perFeed ?? 4;
   const results = await Promise.all(feeds.map(async (u) => {
     try {
-      const r = await fetch(u, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "life-dashboard" } });
+      const r = await fetch(u, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "good-day-sunshine" } });
       if (!r.ok) throw new Error(r.status);
       return parseFeed(await r.text(), u).slice(0, per);
     } catch { return []; }

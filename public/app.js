@@ -279,7 +279,7 @@ async function load(refresh = false) {
   renderThemePicker();
   const p = themePrefs();
   applyTheme(p.theme || data.theme, p.accent ?? data.accent);
-  document.title = `${data.user} · Life Dashboard`;
+  document.title = `${data.user} · Good Day Sunshine`;
   $("#greeting").textContent = greeting(data.user);
   $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   $("#chat-model").textContent = data.chatModel;

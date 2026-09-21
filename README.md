@@ -1,4 +1,4 @@
-# Life Dashboard
+# Good Day Sunshine ☀
 
 One page, first thing in the morning. Calendar, weather, inbox, top stories, GitHub, YouTube, Twitch, whatever needs your attention. 7-day deltas and sparklines. A local-AI brief and a local-AI chat. A garden you water once a day. Runs on your machine, shows on any screen. Zero npm dependencies.
 
@@ -80,14 +80,14 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 
 ```bash
 sudo apt install -y chromium-browser
-git clone <this repo> ~/life-dashboard
-~/life-dashboard/scripts/kiosk.sh http://<your-pc-ip>:4242 tv dave     # or: small
+git clone <this repo> ~/good-day-sunshine
+~/good-day-sunshine/scripts/kiosk.sh http://<your-pc-ip>:4242 tv dave     # or: small
 ```
 
 Boot on start: edit the host/mode/user in `scripts/kiosk.service`, then
 
 ```bash
-mkdir -p ~/.config/systemd/user && cp ~/life-dashboard/scripts/kiosk.service ~/.config/systemd/user/
+mkdir -p ~/.config/systemd/user && cp ~/good-day-sunshine/scripts/kiosk.service ~/.config/systemd/user/
 systemctl --user enable --now kiosk && loginctl enable-linger $USER
 ```
 
