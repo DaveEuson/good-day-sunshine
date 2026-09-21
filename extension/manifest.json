@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Good Day Sunshine",
+  "version": "0.1.0",
+  "description": "Every new tab is your Good Day Sunshine page.",
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" }
+}

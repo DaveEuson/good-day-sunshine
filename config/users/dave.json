@@ -42,5 +42,6 @@
   "sound": true,
   "display": {
     "cycleSec": 10
-  }
+  },
+  "onboarded": true
 }

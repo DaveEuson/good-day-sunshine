@@ -12,13 +12,21 @@ npm run check          # tests
 
 GitHub and attention work with no setup if `gh auth login` has been run. Weather needs nothing (Open-Meteo; no location → IP lookup). Top stories need nothing (RSS). AI needs [Ollama](https://ollama.com) running; if it is down, the brief falls back to a template and chat reports an error.
 
-## Good-morning screen (Windows)
+## Install (Windows)
 
 ```powershell
-.\scripts\install-logon.ps1
+powershell -ExecutionPolicy Bypass -File scriptsinstall.ps1
 ```
 
-Starts the server at logon and opens the dashboard.
+Installs Node if missing (winget), puts a sun in the tray, starts at login, and opens your page. Tray menu: Open, Options, TV mode, Start at login, Open page when I start, Quit. Uninstall with `-Uninstall`. Nothing else is installed; it is a PowerShell tray around `node server.js`.
+
+## First run: the wake-up wizard
+
+An empty install, a profile without `onboarded: true`, `?setup=1`, or "+ New person" in the profile menu opens the wizard: one question at a time, conversational ("Do you manage a Twitch stream?"), details only for what you said yes to, look/quiet hours/sounds/local model at the end. It writes the same profile + keys the options menu does, plants your first seed, and hands you your page. Everything it asked is editable later in ⚙.
+
+## Browser extension
+
+`extension/` is a Manifest V3 new-tab override: every new tab is your page, with a "not running" screen if the server is down. Load unpacked (chrome://extensions → Developer mode → Load unpacked → the `extension` folder) in Chrome, Edge, Brave. Server address in the extension options. Icons come from `node scripts/make-icons.js`.
 
 ## Your own page
 
@@ -64,7 +72,7 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 
 ## AI
 
-- **Brief**: `OLLAMA_MODEL` (default `qwen3.5:9b`) writes three sentences from the live data. Cached 5 min.
+- **Brief**: `OLLAMA_MODEL` (default `qwen3.5:9b`) writes three sentences from the live data, in the tone you picked, aware of what you said steals your day. Cached 5 min.
 - **Chat**: 💬 or `c`. Streams from `CHAT_MODEL` (default `llama3.2:3b`) with the current dashboard as system context. Nothing leaves the machine.
 
 ## Displays

@@ -130,7 +130,7 @@ async function loadBrief() {
   $("#brief").hidden = false;
   $("#brief").innerHTML = `<p class="muted">Writing your brief…</p>`;
   try {
-    const r = await fetch("/api/brief", { method: "POST", body: JSON.stringify({ widgets: data.widgets, name: data.user, tone: data.brief.tone }) });
+    const r = await fetch("/api/brief", { method: "POST", body: JSON.stringify({ widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus }) });
     const j = await r.json();
     $("#brief").innerHTML = `<p>${esc(j.text || j.error)}</p>`;
   } catch (e) {
@@ -302,11 +302,19 @@ setInterval(tickNight, 15_000);
 
 // ---------- load ----------
 let lastHigh = null;
+// wake-up wizard: new person, ?setup=1, or a profile that never finished onboarding
+function wizard(existing) {
+  runWizard({ existing, onDone: (slug) => { localStorage.setItem("ld:user", slug); location.href = `/?u=${slug}`; } });
+}
 async function load(refresh = false) {
   $("#status").textContent = "Loading…";
   const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}`);
   data = await r.json();
-  if (data.error) { $("#grid").innerHTML = `<p class="err">${esc(data.error)}</p>`; return; }
+  if (data.error) {
+    if (user === "new" || r.status === 404) return wizard(null);
+    $("#grid").innerHTML = `<p class="err">${esc(data.error)}</p>`; return;
+  }
+  if (params.has("setup") || (!data.config.onboarded && !MODE)) return wizard({ ...data.config, slug: user });
 
   SFX.setEnabled(!!data.config.sound);
   gardenState = data.widgets.find((w) => w.type === "garden")?.garden ?? null;
@@ -325,13 +333,19 @@ async function load(refresh = false) {
   lastHigh = high;
   startCycle(); tickNight();
   loadBrief();
+  if (params.has("open")) { history.replaceState(null, "", location.pathname + (user !== "dave" ? `?u=${user}` : "")); if (params.get("open") === "options") openSettings(); }
 }
 
 async function loadUsers() {
   const names = await (await fetch("/api/users")).json();
-  $("#user").innerHTML = names.map((n) => `<option value="${n}" ${n === user ? "selected" : ""}>${n}</option>`).join("");
+  if (!names.length) user = "new";
+  $("#user").innerHTML = names.map((n) => `<option value="${n}" ${n === user ? "selected" : ""}>${n}</option>`).join("") + `<option value="new">+ New person…</option>`;
 }
-$("#user").onchange = (e) => { user = e.target.value; localStorage.setItem("ld:user", user); history.replaceState(null, "", `?u=${user}${MODE ? "&mode=" + MODE : ""}`); load(); };
+$("#user").onchange = (e) => {
+  user = e.target.value;
+  if (user === "new") return wizard(null);
+  localStorage.setItem("ld:user", user); history.replaceState(null, "", `?u=${user}${MODE ? "&mode=" + MODE : ""}`); load();
+};
 $("#refresh").onclick = () => load(true);
 document.addEventListener("keydown", (e) => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;

@@ -24,11 +24,11 @@ function fallback({ widgets, name }) {
 }
 
 export async function brief(input, env) {
-  const { widgets, name, tone } = input;
+  const { widgets, name, tone, focus } = input;
   const url = env.OLLAMA_URL || "http://localhost:11434";
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const hour = new Date().getHours();
-  const prompt = `You write a 3-sentence "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.
+  const prompt = `You write a 3-sentence "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
 Rules: plain text, no markdown, no lists, no headings, no emoji. Lead with the most important thing. Copy numbers exactly as digits from DATA (154 stays "154"), never spell them out or change them. If something needs attention, say what to do first. Do not invent data. Sections marked "not configured" get no mention.
 
 DATA:
