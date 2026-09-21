@@ -22,7 +22,7 @@ Starts the server at logon and opens the dashboard.
 
 ## Your own page
 
-Click ⚙ (or press `o`). Name, default theme, accent, brief on/off + tone, sounds, quiet hours, small-display cycle time, and the widget list: tick to show, ▲▼ to order, per-widget options as JSON. Save writes `config/users/<you>.json`. Or copy `config/users/_template.json` by hand. Open `?u=<you>` or use the profile picker. Theme/accent overrides from the header picker are saved per profile in the browser only.
+Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sounds, quiet hours, display cycle, the widget list (tick to show, ▲▼ to order, per-widget fields), Ollama URL + models, and API keys. Profile saves to `config/users/<you>.json`; keys and models save to `.env` (mode 600, never sent back to the browser). Keys/profile edits are accepted only from the machine running the server unless `ADMIN_FROM_LAN=1`. Or copy `config/users/_template.json` by hand. Open `?u=<you>` or use the profile picker. Theme/accent overrides from the header picker are saved per profile in the browser only.
 
 ### Widgets
 

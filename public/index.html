@@ -52,8 +52,17 @@
       <label>Quiet hours <input name="quietStart" type="time"> to <input name="quietEnd" type="time"> <span class="hint">screen dims, tap to wake</span></label>
       <label>Small display cycle <input name="cycleSec" type="number" min="3" max="120" style="width:5em"> s</label>
     </div>
-    <h3>Widgets <span class="hint">check to show, ▲▼ to order, options as JSON</span></h3>
+    <h3>Widgets <span class="hint">check to show, ▲▼ to order</span></h3>
     <div id="widget-list" class="widget-list"></div>
+    <h3>AI <span class="hint" id="ai-status"></span></h3>
+    <div class="fields">
+      <label>Ollama URL <input name="OLLAMA_URL" placeholder="http://localhost:11434"></label>
+      <label>Brief model <select name="OLLAMA_MODEL" id="brief-model"></select></label>
+      <label>Chat model <select name="CHAT_MODEL" id="chat-model-sel"></select></label>
+    </div>
+    <h3>Keys <span class="hint">saved to .env on the server, never shown again. Blank = keep, <code>-</code> = clear.</span></h3>
+    <div id="key-list" class="fields keys"></div>
+    <p class="hint" id="admin-note" hidden>Keys and profile can only be edited from the machine running the server.</p>
     <h3>Display modes</h3>
     <p class="hint">Append to the URL: <code>?mode=tv</code> big screen, no controls · <code>?mode=small</code> one card at a time, for small always-on panels · <code>?u=name</code> profile.</p>
     <div class="row end"><button value="cancel" class="ghost">Cancel</button><button value="save" id="settings-save">Save & reload</button></div>

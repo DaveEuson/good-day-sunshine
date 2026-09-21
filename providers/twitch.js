@@ -22,7 +22,7 @@ async function tw(path, env, tok) {
 export async function fetchData(cfg, env) {
   const login = cfg.login ?? env.TWITCH_LOGIN;
   if (!env.TWITCH_CLIENT_ID || !env.TWITCH_CLIENT_SECRET || !login)
-    return { setup: "Set TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_LOGIN in .env." };
+    return { setup: "Set TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_LOGIN in ⚙ Options → Keys." };
 
   const tok = await getAppToken(env);
   const u = (await tw(`/users?login=${login}`, env, tok)).data?.[0];

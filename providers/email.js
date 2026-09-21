@@ -6,7 +6,7 @@ const unesc = (s) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt
 
 export async function fetchData(cfg, env) {
   const user = cfg.user ?? env.GMAIL_USER, pass = env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) return { setup: "Set GMAIL_USER and GMAIL_APP_PASSWORD in .env." };
+  if (!user || !pass) return { setup: "Set GMAIL_USER and GMAIL_APP_PASSWORD in ⚙ Options → Keys." };
 
   const r = await fetch("https://mail.google.com/mail/feed/atom", {
     headers: { Authorization: "Basic " + Buffer.from(`${user}:${pass}`).toString("base64") },

@@ -171,11 +171,29 @@ $("#chat-form").onsubmit = async (e) => {
 
 // ---------- options menu ----------
 $("#settings-toggle").onclick = () => openSettings();
+let keyMeta = [];
 async function openSettings() {
-  if (!catalog.length) catalog = await (await fetch("/api/catalog")).json();
+  const [cat, envInfo, models] = await Promise.all([
+    catalog.length ? catalog : (await fetch("/api/catalog")).json(),
+    fetch("/api/env").then((r) => r.ok ? r.json() : null),
+    fetch("/api/models").then((r) => r.ok ? r.json() : null),
+  ]);
+  catalog = cat;
   const cfg = data.config;
   const f = $("#settings-form");
   themeOptions($("#settings-theme"), true);
+  // AI
+  $("#admin-note").hidden = !!envInfo;
+  if (models) {
+    f.OLLAMA_URL.value = models.url;
+    const opts = (cur) => [...new Set([cur, ...models.models])].filter(Boolean).map((m) => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("");
+    $("#brief-model").innerHTML = opts(models.brief); $("#chat-model-sel").innerHTML = opts(models.chat);
+    $("#ai-status").textContent = models.ok ? `${models.models.length} local models` : "Ollama not reachable";
+  }
+  // Keys
+  keyMeta = envInfo ?? [];
+  $("#key-list").innerHTML = keyMeta.map((k) => `<label title="${esc(k.help)}">${esc(k.label)}${k.url ? ` <a href="${esc(k.url)}" target="_blank" rel="noopener">↗</a>` : ""}
+    <input name="env:${k.key}" ${k.secret === false ? `value="${esc(k.value ?? "")}"` : `type="password" placeholder="${k.set ? "•••••• (set)" : "not set"}"`} autocomplete="off"></label>`).join("");
   f.name.value = cfg.name; f.theme.value = cfg.theme ?? "midnight"; f.accent.value = cfg.accent ?? "";
   f.briefEnabled.checked = cfg.brief?.enabled !== false; f.tone.value = cfg.brief?.tone ?? "";
   f.sound.checked = !!cfg.sound;
@@ -185,14 +203,18 @@ async function openSettings() {
   const rows = [...cfg.widgets.map((w) => ({ ...w, on: true })), ...catalog.filter((c) => !cfg.widgets.some((w) => w.type === c.type)).map((c) => ({ type: c.type, on: false }))];
   renderWidgetRows(rows);
 }
+// Per-widget option fields come from the catalog hint (example JSON): key → input, typed by the example value.
+const hintFields = (c) => { try { return Object.entries(JSON.parse(c.hint)); } catch { return []; } };
+const fieldVal = (v) => Array.isArray(v) ? v.join(", ") : v ?? "";
 function renderWidgetRows(rows) {
   $("#widget-list").innerHTML = rows.map((w, i) => {
     const c = catalog.find((x) => x.type === w.type) ?? { title: w.type, icon: "•", hint: "{}" };
     const { type, on, title, ...opts } = w;
+    const fields = hintFields(c).map(([k, ex]) => `<label class="w-field">${esc(k)} <input data-k="${esc(k)}" data-ex='${esc(JSON.stringify(ex))}' placeholder="${esc(fieldVal(ex))}" value="${esc(fieldVal(opts[k]))}"></label>`).join("");
     return `<div class="wrow" data-type="${type}">
       <label><input type="checkbox" class="w-on" ${on ? "checked" : ""}> <span class="icon">${esc(c.icon)}</span> ${esc(c.title)}</label>
       <input class="w-title" placeholder="title" value="${esc(title ?? "")}">
-      <input class="w-opts" placeholder='${esc(c.hint)}' value="${esc(Object.keys(opts).length ? JSON.stringify(opts) : "")}">
+      <div class="w-fields">${fields || `<span class="hint">no options</span>`}</div>
       <span class="w-move"><button type="button" data-mv="-1" ${i === 0 ? "disabled" : ""}>▲</button><button type="button" data-mv="1" ${i === rows.length - 1 ? "disabled" : ""}>▼</button></span>
     </div>`;
   }).join("");
@@ -201,9 +223,13 @@ function renderWidgetRows(rows) {
 function readWidgetRows() {
   return [...document.querySelectorAll(".wrow")].map((r) => {
     const type = r.dataset.type, on = r.querySelector(".w-on").checked, title = r.querySelector(".w-title").value.trim();
-    let opts = {};
-    const raw = r.querySelector(".w-opts").value.trim();
-    if (raw) { try { opts = JSON.parse(raw); } catch { throw new Error(`Options for ${type} are not valid JSON.`); } }
+    const opts = {};
+    for (const inp of r.querySelectorAll(".w-field input")) {
+      const raw = inp.value.trim();
+      if (!raw) continue;
+      const ex = JSON.parse(inp.dataset.ex);
+      opts[inp.dataset.k] = Array.isArray(ex) ? raw.split(",").map((s) => s.trim()).filter(Boolean) : typeof ex === "number" ? Number(raw) : raw;
+    }
     return { type, on, ...(title ? { title } : {}), ...opts };
   });
 }
@@ -231,6 +257,14 @@ $("#settings-form").addEventListener("submit", async (e) => {
     const r = await fetch(`/api/users/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify(cfg) });
     const j = await r.json();
     if (j.error) throw new Error(j.error);
+    // keys + AI → .env (only non-empty; "-" clears)
+    const envUpd = {};
+    for (const k of keyMeta) { const v = f[`env:${k.key}`].value.trim(); if (v) envUpd[k.key] = v === "-" ? "" : v; }
+    for (const k of ["OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]) { const v = f[k]?.value?.trim(); if (v) envUpd[k] = v; }
+    if (Object.keys(envUpd).length) {
+      const er = await (await fetch("/api/env", { method: "PUT", body: JSON.stringify(envUpd) })).json();
+      if (er.error) throw new Error(er.error);
+    }
     $("#settings").close();
     load(true);
   } catch (err) { $("#status").textContent = err.message; }

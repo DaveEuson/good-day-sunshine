@@ -62,7 +62,7 @@ export function expand(events, from, to) {
 
 export async function fetchData(cfg, env) {
   const urls = (cfg.ics ?? env.CALENDAR_ICS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!urls.length) return { setup: "Set CALENDAR_ICS in .env (private iCal URL), or ics in widget config." };
+  if (!urls.length) return { setup: "Set Calendar iCal URL in ⚙ Options → Keys." };
 
   const texts = await Promise.all(urls.map(async (u) => { const r = await fetch(u); if (!r.ok) throw new Error(`ics → ${r.status}`); return r.text(); }));
   const now = new Date();

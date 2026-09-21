@@ -2,7 +2,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { providers, OPTION_HINTS } from "./providers/index.js";
+import { providers, OPTION_HINTS, KEYS } from "./providers/index.js";
 import { brief } from "./brief.js";
 import { chat } from "./chat.js";
 import { openHistory } from "./history.js";
@@ -13,14 +13,27 @@ const PUB = path.join(ROOT, "public");
 const USERS = path.join(ROOT, "config", "users");
 const DATA = path.join(ROOT, "data");
 
-// .env loader (no deps). Real env wins over file.
-try {
-  for (const line of fs.readFileSync(path.join(ROOT, ".env"), "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2];
-  }
-} catch {}
+// .env loader/writer (no deps). Real env wins over file on first load.
+const ENV_FILE = path.join(ROOT, ".env");
+function readEnvFile() {
+  const out = {};
+  try {
+    for (const line of fs.readFileSync(ENV_FILE, "utf8").split("\n")) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+      if (m) out[m[1]] = m[2];
+    }
+  } catch {}
+  return out;
+}
+for (const [k, v] of Object.entries(readEnvFile())) if (!(k in process.env)) process.env[k] = v;
+function writeEnv(updates) {
+  const cur = readEnvFile();
+  for (const [k, v] of Object.entries(updates)) { if (v === "" || v == null) delete cur[k]; else cur[k] = String(v); }
+  fs.writeFileSync(ENV_FILE, Object.entries(cur).map(([k, v]) => `${k}=${v}`).join("\n") + "\n", { mode: 0o600 });
+  for (const [k, v] of Object.entries(updates)) { if (v === "" || v == null) delete process.env[k]; else process.env[k] = String(v); }
+}
 const env = process.env;
+const isLocal = (req) => ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress) || env.ADMIN_FROM_LAN === "1";
 const PORT = +(env.PORT || 4242);
 const HOST = env.HOST || "0.0.0.0"; // LAN by default so Pi/Jetson/ESP32 displays can reach it
 const TTL = +(env.CACHE_TTL_MS || 5 * 60_000);
@@ -105,6 +118,32 @@ http.createServer(async (req, res) => {
       const cat = Object.entries(providers).map(([type, p]) => ({ type, title: p.meta.title, icon: p.meta.icon, hint: OPTION_HINTS[type] ?? "{}" }));
       cat.splice(4, 0, { type: "garden", title: "Garden", icon: "❀", hint: "{}" });
       return json(res, 200, cat);
+    }
+
+    // Admin surface: only from this machine unless ADMIN_FROM_LAN=1.
+    if (url.pathname === "/api/env" || url.pathname === "/api/models" || (req.method === "PUT" && url.pathname.startsWith("/api/users/"))) {
+      if (!isLocal(req)) return json(res, 403, { error: "Settings can only be changed from the machine running the server (or set ADMIN_FROM_LAN=1)." });
+    }
+    if (url.pathname === "/api/env" && req.method === "GET") {
+      return json(res, 200, KEYS.map((k) => ({ ...k, set: !!env[k.key], value: k.secret === false ? env[k.key] ?? "" : undefined })));
+    }
+    if (url.pathname === "/api/env" && req.method === "PUT") {
+      const updates = await body(req);
+      const allowed = new Set([...KEYS.map((k) => k.key), "OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]);
+      for (const k of Object.keys(updates)) if (!allowed.has(k)) return json(res, 400, { error: `Not a settable key: ${k}` });
+      writeEnv(updates);
+      cache.clear();
+      return json(res, 200, { ok: true });
+    }
+    if (url.pathname === "/api/models") {
+      const base = env.OLLAMA_URL || "http://localhost:11434";
+      try {
+        const r = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) });
+        const names = (await r.json()).models.map((m) => m.name);
+        return json(res, 200, { ok: true, url: base, models: names, brief: env.OLLAMA_MODEL || "qwen3.5:9b", chat: env.CHAT_MODEL || "llama3.2:3b" });
+      } catch {
+        return json(res, 200, { ok: false, url: base, models: [], brief: env.OLLAMA_MODEL || "", chat: env.CHAT_MODEL || "" });
+      }
     }
 
     const um = url.pathname.match(/^\/api\/users\/([a-z0-9_-]+)$/i);

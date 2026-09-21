@@ -10,7 +10,7 @@ async function yt(path, key) {
 
 export async function fetchData(cfg, env) {
   const key = env.YOUTUBE_API_KEY, id = cfg.channelId ?? env.YOUTUBE_CHANNEL_ID;
-  if (!key || !id) return { setup: "Set YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID in .env." };
+  if (!key || !id) return { setup: "Set YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID in ⚙ Options → Keys." };
 
   const ch = await yt(`/channels?part=statistics,contentDetails,snippet&id=${id}`, key);
   const c = ch.items?.[0];

@@ -143,3 +143,12 @@ body.small .grid > .widget { display: none; }
 body.small .grid > .widget.active { display: flex; min-height: 0; }
 body.small .stat .v { font-size: 34px; }
 body.small footer, body.small #chat { display: none; }
+
+/* options: per-widget fields + keys */
+.wrow { grid-template-columns: 1.2fr .8fr 2.4fr auto; align-items: start; }
+.w-fields { display: flex; flex-wrap: wrap; gap: 6px; }
+.w-field { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.w-field input { width: 9em; }
+.keys label { flex-direction: column; align-items: stretch; gap: 4px; }
+.keys a { color: var(--accent); font-size: 12px; }
+@media (max-width: 640px) { .wrow { grid-template-columns: 1fr; } }

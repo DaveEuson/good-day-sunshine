@@ -10,7 +10,7 @@ const htmlUrl = (n) => {
 
 export async function fetchData(cfg, env) {
   const tok = token(env);
-  if (!tok) return { setup: "Set GITHUB_TOKEN or run gh auth login." };
+  if (!tok) return { setup: "Set GitHub token in ⚙ Options → Keys, or run gh auth login." };
 
   const [notifs, reviews, assigned] = await Promise.all([
     gh("/notifications?per_page=20", tok).catch(() => []),
