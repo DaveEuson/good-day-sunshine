@@ -1,0 +1,11 @@
+{
+  "name": "life-dashboard",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}

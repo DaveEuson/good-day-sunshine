@@ -1,0 +1,12 @@
+{
+  "name": "Dave",
+  "theme": "midnight",
+  "accent": null,
+  "widgets": [
+    { "type": "attention" },
+    { "type": "github", "user": "DaveEuson", "top": 6 },
+    { "type": "youtube" },
+    { "type": "twitch" }
+  ],
+  "brief": { "enabled": true, "tone": "warm, concise, a little dry" }
+}

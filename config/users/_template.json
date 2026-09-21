@@ -1,0 +1,12 @@
+{
+  "name": "Your Name",
+  "theme": "paper",
+  "accent": "#3b82f6",
+  "widgets": [
+    { "type": "github", "user": "your-github-login", "top": 5 },
+    { "type": "youtube" },
+    { "type": "twitch" },
+    { "type": "attention" }
+  ],
+  "brief": { "enabled": true, "tone": "upbeat" }
+}

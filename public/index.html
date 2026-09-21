@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Life Dashboard</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1 id="greeting">Good morning</h1>
+    <p id="date" class="muted"></p>
+  </div>
+  <div class="controls">
+    <select id="user" title="Profile"></select>
+    <select id="theme" title="Theme"></select>
+    <input id="accent" type="color" title="Accent">
+    <button id="refresh" title="Refresh data">↻</button>
+  </div>
+</header>
+
+<section id="brief" class="card brief">
+  <p class="muted">Thinking…</p>
+</section>
+
+<main id="grid" class="grid"></main>
+
+<footer class="muted">
+  <span id="status"></span>
+</footer>
+
+<script src="/themes.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
