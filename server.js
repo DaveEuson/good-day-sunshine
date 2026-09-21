@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { providers, OPTION_HINTS, KEYS } from "./providers/index.js";
 import { brief } from "./brief.js";
 import { chat } from "./chat.js";
+import { CLAUDE_MODELS } from "./ai.js";
 import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 
@@ -130,6 +131,8 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/api/env" && req.method === "PUT") {
       const updates = await body(req);
       const allowed = new Set([...KEYS.map((k) => k.key), "OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]);
+      // picking a claude-* model without a key is a dead end; say so before writing
+      for (const k of ["OLLAMA_MODEL", "CHAT_MODEL"]) if (/^claude-/.test(updates[k] || "") && !(updates.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY)) return json(res, 400, { error: `${updates[k]} needs an Anthropic API key (Keys section).` });
       for (const k of Object.keys(updates)) if (!allowed.has(k)) return json(res, 400, { error: `Not a settable key: ${k}` });
       writeEnv(updates);
       cache.clear();
@@ -137,13 +140,10 @@ http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/models") {
       const base = env.OLLAMA_URL || "http://localhost:11434";
-      try {
-        const r = await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) });
-        const names = (await r.json()).models.map((m) => m.name);
-        return json(res, 200, { ok: true, url: base, models: names, brief: env.OLLAMA_MODEL || "qwen3.5:9b", chat: env.CHAT_MODEL || "llama3.2:3b" });
-      } catch {
-        return json(res, 200, { ok: false, url: base, models: [], brief: env.OLLAMA_MODEL || "", chat: env.CHAT_MODEL || "" });
-      }
+      let local = [];
+      try { local = (await (await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) })).json()).models.map((m) => m.name); } catch {}
+      const claude = env.ANTHROPIC_API_KEY ? CLAUDE_MODELS : [];
+      return json(res, 200, { ok: local.length + claude.length > 0, url: base, local: local.length, claude: claude.length > 0, models: [...claude, ...local], brief: env.OLLAMA_MODEL || (local.length ? "qwen3.5:9b" : ""), chat: env.CHAT_MODEL || (local.length ? "llama3.2:3b" : "") });
     }
 
     const um = url.pathname.match(/^\/api\/users\/([a-z0-9_-]+)$/i);
@@ -164,9 +164,10 @@ http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/chat" && req.method === "POST") {
-      const stream = await chat(await body(req), env);
+      const stream = chat(await body(req), env);
       res.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" });
-      for await (const chunk of stream) res.write(chunk);
+      try { for await (const text of stream) res.write(JSON.stringify({ message: { content: text } }) + "\n"); }
+      catch (e) { res.write(JSON.stringify({ message: { content: `\n[${e.message}]` } }) + "\n"); }
       return res.end();
     }
 

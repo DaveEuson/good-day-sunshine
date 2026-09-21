@@ -1,11 +1,12 @@
 # Good Day Sunshine ☀
 
-One page, first thing in the morning. Calendar, weather, inbox, top stories, GitHub, YouTube, Twitch, whatever needs your attention. 7-day deltas and sparklines. A local-AI brief and a local-AI chat. A garden you water once a day. Runs on your machine, shows on any screen. Zero npm dependencies.
+One page, first thing in the morning. Calendar, weather, inbox, top stories, GitHub, YouTube, Twitch, whatever needs your attention. 7-day deltas and sparklines. A local-AI brief and a local-AI chat. A garden you water once a day. Runs on your machine, shows on any screen. One npm dependency (the Anthropic SDK), loaded only if you use Claude.
 
 ## Run
 
 ```bash
 cp .env.example .env   # fill in keys you have; missing ones show a setup hint
+npm install            # only needed for Claude; everything else is dependency-free
 npm start              # http://localhost:4242 (bound to 0.0.0.0 so other screens on the LAN can open it)
 npm run check          # tests
 ```
@@ -73,7 +74,8 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 ## AI
 
 - **Brief**: `OLLAMA_MODEL` (default `qwen3.5:9b`) writes three sentences from the live data, in the tone you picked, aware of what you said steals your day. Cached 5 min.
-- **Chat**: 💬 or `c`. Streams from `CHAT_MODEL` (default `llama3.2:3b`) with the current dashboard as system context. Nothing leaves the machine.
+- **Chat**: 💬 or `c`. Streams from `CHAT_MODEL` (default `llama3.2:3b`) with the current dashboard as system context. Local models keep everything on the machine.
+- **Claude**: paste an Anthropic API key in ⚙ Options → Keys, then pick `claude-opus-5` (or sonnet/haiku) as the brief and/or chat model. Small local models misread numbers now and then; Claude does not. Uses the official SDK with adaptive thinking, low effort, and server-side refusal fallbacks. The wizard asks for the key too.
 
 ## Displays
 

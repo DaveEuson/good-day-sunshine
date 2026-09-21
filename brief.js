@@ -1,4 +1,5 @@
-// AI "good morning" brief. Local Ollama by default; falls back to a template if unreachable.
+// AI "good morning" brief. Local Ollama by default, Claude if OLLAMA_MODEL is a claude-* id; template fallback if either fails.
+import { isClaude, claudeText } from "./ai.js";
 
 function summarize(widgets) {
   return widgets.map((w) => {
@@ -28,18 +29,20 @@ export async function brief(input, env) {
   const url = env.OLLAMA_URL || "http://localhost:11434";
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const hour = new Date().getHours();
-  const prompt = `You write a 3-sentence "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
-Rules: plain text, no markdown, no lists, no headings, no emoji. Lead with the most important thing. Copy numbers exactly as digits from DATA (154 stays "154"), never spell them out or change them. If something needs attention, say what to do first. Do not invent data. Sections marked "not configured" get no mention.
-
-DATA:
-${summarize(widgets)}`;
+  const system = `You write a 3-sentence "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
+Rules: plain text, no markdown, no lists, no headings, no emoji. Lead with the most important thing. Copy numbers exactly as digits from DATA (154 stays "154"), never spell them out or change them. If something needs attention, say what to do first. Do not invent data. Sections marked "not configured" get no mention.`;
+  const data = `DATA:\n${summarize(widgets)}`;
 
   try {
+    if (isClaude(model)) {
+      const text = await claudeText({ model, system, messages: [{ role: "user", content: data }], effort: "low" }, env);
+      return text || fallback(input);
+    }
     const ctl = AbortSignal.timeout(+(env.OLLAMA_TIMEOUT_MS || 60_000));
     const r = await fetch(`${url}/api/generate`, {
       method: "POST",
       signal: ctl,
-      body: JSON.stringify({ model, prompt, stream: false, think: false, options: { temperature: 0.6, num_predict: 200 } }),
+      body: JSON.stringify({ model, prompt: `${system}\n\n${data}`, stream: false, think: false, options: { temperature: 0.6, num_predict: 200 } }),
     });
     if (!r.ok) throw new Error(`ollama ${r.status}`);
     const j = await r.json();

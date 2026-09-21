@@ -1,6 +1,8 @@
 // Theme presets. Each is a set of CSS variables. Add one → appears in picker.
 // `locked: true` themes are bought with garden tokens (costs live in garden.js THEME_COSTS).
 window.THEMES = {
+  sunrise:  { name: "Sunrise",  bg: "#fff7ea", page: "linear-gradient(180deg,#ffe9c7 0%,#fff7ea 38%,#fffdf8 100%)", card: "#ffffff", text: "#2a1d10", muted: "#8a7457", accent: "#f07f1f", border: "#f3e2c8", font: "system-ui, -apple-system, Segoe UI, sans-serif" },
+  sky:      { name: "Sky",      bg: "#eef6ff", page: "linear-gradient(180deg,#d9ecff 0%,#eef6ff 45%,#ffffff 100%)", card: "#ffffff", text: "#0f1f33", muted: "#5f7690", accent: "#1e88e5", border: "#d6e6f7", font: "system-ui, sans-serif" },
   midnight: { name: "Midnight", bg: "#0b1020", card: "#131a2e", text: "#e6e9f2", muted: "#8b93ad", accent: "#7aa2ff", border: "#222b47", font: "system-ui, -apple-system, Segoe UI, sans-serif" },
   paper:    { name: "Paper",    bg: "#f6f3ec", card: "#ffffff", text: "#1e1c18", muted: "#7a756b", accent: "#c2410c", border: "#e6e1d6", font: "Georgia, 'Iowan Old Style', serif" },
   forest:   { name: "Forest",   bg: "#0f1a14", card: "#16241c", text: "#e3efe6", muted: "#8aa693", accent: "#5ad27d", border: "#243a2e", font: "system-ui, sans-serif" },

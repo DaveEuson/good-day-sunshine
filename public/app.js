@@ -10,7 +10,7 @@ document.body.classList.toggle("small", MODE === "small");
 
 // ---------- theme ----------
 function applyTheme(key, accent) {
-  const t = THEMES[key] ?? THEMES.midnight;
+  const t = THEMES[key] ?? THEMES.sunrise;
   const r = document.documentElement.style;
   for (const k of ["bg", "card", "text", "muted", "accent", "border", "font"]) r.setProperty(`--${k}`, t[k]);
   r.setProperty("--page", t.page ?? t.bg);
@@ -119,6 +119,21 @@ $("#grid").addEventListener("click", async (e) => {
   else (SFX[b.dataset.g === "buy" ? "unlock" : b.dataset.g] ?? SFX.tap)();
 });
 
+// one line under the greeting: weather · next event · what needs you
+function heroLine(ws) {
+  const bits = [];
+  const wx = ws.find((w) => w.type === "weather" && w.stats);
+  if (wx) bits.push(`${wx.stats[0].value} ${wx.stats[0].label.toLowerCase()}, high ${wx.stats[1].value.split(" / ")[0]}`);
+  const cal = ws.find((w) => w.type === "calendar" && w.stats);
+  if (cal) { const n = cal.stats.find((s) => s.label === "Next"); bits.push(n?.sub ? `next: ${n.value} ${n.sub}` : "nothing on the calendar"); }
+  const att = ws.flatMap((w) => w.attention ?? []);
+  const high = att.filter((a) => a.level === "high").length;
+  bits.push(att.length ? `${att.length} need you${high ? ` (${high} urgent)` : ""}` : "nothing needs you");
+  const mail = ws.find((w) => w.type === "email" && w.stats);
+  if (mail) bits.push(`${mail.stats[0].value} unread`);
+  return bits.join(" · ");
+}
+
 // ---------- brief ----------
 function greeting(name) {
   const h = new Date().getHours();
@@ -188,7 +203,7 @@ async function openSettings() {
     f.OLLAMA_URL.value = models.url;
     const opts = (cur) => [...new Set([cur, ...models.models])].filter(Boolean).map((m) => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("");
     $("#brief-model").innerHTML = opts(models.brief); $("#chat-model-sel").innerHTML = opts(models.chat);
-    $("#ai-status").textContent = models.ok ? `${models.models.length} local models` : "Ollama not reachable";
+    $("#ai-status").textContent = [models.local ? `${models.local} local models` : "Ollama not reachable", models.claude ? "Claude ready" : "add an Anthropic key for Claude"].join(" · ");
   }
   // Keys
   keyMeta = envInfo ?? [];
@@ -325,7 +340,12 @@ async function load(refresh = false) {
   $("#greeting").textContent = greeting(data.user);
   $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   $("#chat-model").textContent = data.chatModel;
-  $("#grid").innerHTML = data.widgets.map(widget).join("");
+  const ready = data.widgets.filter((w) => !w.setup), pending = data.widgets.filter((w) => w.setup);
+  $("#grid").innerHTML = ready.map(widget).join("");
+  $("#setup-strip").hidden = !pending.length || !!MODE;
+  $("#setup-strip").innerHTML = pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b> <button id="setup-go">Add keys</button>` : "";
+  $("#setup-go")?.addEventListener("click", openSettings);
+  $("#hero").textContent = heroLine(data.widgets);
   $("#status").textContent = `Updated ${new Date().toLocaleTimeString()}`;
   $("#mode-hint").textContent = MODE ? `· ${MODE} mode` : "";
   const high = data.widgets.flatMap((w) => w.attention ?? []).filter((a) => a.level === "high").length;

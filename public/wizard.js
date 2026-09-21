@@ -5,7 +5,7 @@
 window.runWizard = async function runWizard({ existing = null, onDone }) {
   const $w = document.getElementById("wizard");
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const a = { name: existing?.name ?? "", tone: existing?.brief?.tone ?? "", focus: existing?.brief?.focus ?? "", w: {}, keys: {}, theme: existing?.theme ?? "midnight", quiet: existing?.quiet ?? null, sound: existing?.sound ?? true, model: null };
+  const a = { name: existing?.name ?? "", tone: existing?.brief?.tone ?? "", focus: existing?.brief?.focus ?? "", w: {}, keys: {}, theme: existing?.theme ?? "sunrise", quiet: existing?.quiet ?? null, sound: existing?.sound ?? true, model: null };
   for (const x of existing?.widgets ?? []) a.w[x.type] = { ...x };
   let models = null;
   try { models = await (await fetch("/api/models")).json(); } catch {}
@@ -48,7 +48,8 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
     { q: "Pick a look.", sub: "Tap to try it on.", render: () => `<div class="wz-themes">${Object.entries(THEMES).filter(([, t]) => !t.locked).map(([k, t]) => `<button type="button" class="wz-theme ${k === a.theme ? "on" : ""}" data-theme="${k}" style="background:${t.card};color:${t.text};border-color:${k === a.theme ? t.accent : t.border}"><span style="color:${t.accent}">●</span> ${esc(t.name)}</button>`).join("")}</div>`, read: () => {} },
     { q: "When should the screen go dark?", sub: "Quiet hours. Tap the screen to wake it for a few minutes.", render: () => choices([["Never", ""], ["22:00 – 07:00", "22:00-07:00"], ["23:00 – 06:00", "23:00-06:00"], ["00:00 – 08:00", "00:00-08:00"]], a.quiet ? `${a.quiet.start}-${a.quiet.end}` : ""), read: () => { const p = picked(); a.quiet = p ? { start: p.split("-")[0], end: p.split("-")[1] } : null; } },
     { when: () => on("garden"), q: "Little sounds when the garden grows?", render: () => yesno(a.sound), read: () => { a.sound = !!picked(); } },
-    { when: () => models?.ok && models.models.length, q: "I can write you a three-sentence brief each morning with a local model. Which one?", sub: `Found ${models?.models.length ?? 0} in Ollama. Nothing leaves this machine.`, render: () => choices([["Skip the brief", ""], ...models.models.slice(0, 8).map((m) => [m, m])], a.model ?? models.brief), read: () => { a.model = picked(); } },
+    { skip: true, q: "Have an Anthropic API key? Claude can write your brief and answer questions about your day.", sub: "console.anthropic.com → API keys. Stored on this machine only. Skip to use a local model, or none.", render: () => text("wz-in", "sk-ant-…", "", "password"), read: () => { const k = v("#wz-in").trim(); if (k) { a.keys.ANTHROPIC_API_KEY = k; a.model = "claude-opus-5"; a.chatModel = "claude-opus-5"; } } },
+    { when: () => !a.keys.ANTHROPIC_API_KEY && models?.local, q: "I can write you a three-sentence brief each morning with a local model. Which one?", sub: `Found ${models?.local ?? 0} in Ollama. Nothing leaves this machine.`, render: () => choices([["Skip the brief", ""], ...models.models.filter((m) => !/^claude-/.test(m)).slice(0, 8).map((m) => [m, m])], a.model ?? models.brief), read: () => { a.model = picked(); } },
   ];
 
   let i = 0;
@@ -89,12 +90,12 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
     const order = ["attention", "calendar", "weather", "email", "garden", "news", "github", "youtube", "twitch"];
     const widgets = order.filter((t) => a.w[t]).map((t) => ({ type: t, ...a.w[t] }));
     if (!widgets.length) widgets.push({ type: "weather", units: "c" }, { type: "news", max: 8 });
-    const cfg = { ...(existing ?? {}), name: a.name, theme: a.theme, accent: existing?.accent ?? null, widgets, brief: { enabled: !!a.model || !models?.ok, tone: a.tone, ...(a.focus ? { focus: a.focus } : {}) }, sound: a.sound, quiet: a.quiet ?? undefined, display: existing?.display ?? { cycleSec: 12 }, onboarded: true };
+    const cfg = { ...(existing ?? {}), name: a.name, theme: a.theme, accent: existing?.accent ?? null, widgets, brief: { enabled: !!a.model || !!a.keys.ANTHROPIC_API_KEY || !models?.ok, tone: a.tone, ...(a.focus ? { focus: a.focus } : {}) }, sound: a.sound, quiet: a.quiet ?? undefined, display: existing?.display ?? { cycleSec: 12 }, onboarded: true };
     delete cfg.slug;
     try {
       let r = await (await fetch(`/api/users/${slug}`, { method: "PUT", body: JSON.stringify(cfg) })).json();
       if (r.error) throw new Error(r.error);
-      const env = { ...a.keys, ...(a.model ? { OLLAMA_MODEL: a.model } : {}) };
+      const env = { ...a.keys, ...(a.model ? { OLLAMA_MODEL: a.model } : {}), ...(a.chatModel ? { CHAT_MODEL: a.chatModel } : {}) };
       if (Object.keys(env).length) { r = await (await fetch("/api/env", { method: "PUT", body: JSON.stringify(env) })).json(); if (r.error) throw new Error(r.error); }
       if (a.w.garden) await fetch(`/api/garden/plant?u=${slug}`, { method: "POST", body: JSON.stringify({ seed: "sprout" }) }).catch(() => {});
       $w.innerHTML = `<div class="wz-card"><h1>Good day, ${esc(a.name)}.</h1><p class="hint">${a.w.garden ? "Your first seed is in the ground. Water it tomorrow." : "Your page is ready."} Everything you told me is in ⚙ Options if you change your mind.</p><div class="wz-nav"><span></span><button type="button" id="wz-go">Open my page</button></div></div>`;

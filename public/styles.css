@@ -174,3 +174,13 @@ body.small footer, body.small #chat { display: none; }
 .wz-nav button { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 10px; padding: 10px 18px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .wz-nav button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
 .wizard .err:empty { display: none; }
+
+/* hero line + setup strip */
+.hero { margin: 8px 0 0; font-size: 17px; color: var(--text); }
+.hero:empty { display: none; }
+.setup-strip { margin: 16px 0 0; font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.setup-strip b { color: var(--text); font-weight: 500; }
+.setup-strip button { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+body.tv .hero { font-size: 26px; }
+.brief { box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+.card.widget { box-shadow: 0 2px 12px rgba(0,0,0,.04); }

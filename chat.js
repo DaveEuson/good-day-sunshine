@@ -1,4 +1,6 @@
-// Chat grounded in dashboard data. Proxies Ollama /api/chat, streams NDJSON through.
+// Chat grounded in dashboard data. Returns an async iterable of text chunks from Ollama or Claude.
+import { isClaude, claudeStream, ollamaStream } from "./ai.js";
+
 function context(widgets) {
   return (widgets ?? []).map((w) => {
     if (w.setup || w.error) return `${w.title}: not configured`;
@@ -8,18 +10,14 @@ function context(widgets) {
   }).join("\n\n");
 }
 
-export async function chat({ messages, widgets, name }, env) {
-  const url = env.OLLAMA_URL || "http://localhost:11434";
+export function chat({ messages, widgets, name }, env) {
   const model = env.CHAT_MODEL || "llama3.2:3b";
-  const system = `You are ${name}'s personal dashboard assistant, running locally. Be brief and direct. Answer from the DATA below when relevant; say so if the data does not cover the question. Today: ${new Date().toDateString()}.
+  const system = `You are ${name}'s personal dashboard assistant, running on their own machine. Be brief and direct. Answer from the DATA below when relevant; say so if the data does not cover the question. Today: ${new Date().toDateString()}.
 
 DATA:
 ${context(widgets)}`;
-
-  const r = await fetch(`${url}/api/chat`, {
-    method: "POST",
-    body: JSON.stringify({ model, stream: true, messages: [{ role: "system", content: system }, ...messages.slice(-20)], options: { temperature: 0.5 } }),
-  });
-  if (!r.ok) throw new Error(`ollama chat → ${r.status}`);
-  return r.body; // NDJSON stream: {message:{content}, done}
+  const turns = messages.slice(-20).map(({ role, content }) => ({ role, content }));
+  return isClaude(model)
+    ? claudeStream({ model, system, messages: turns, effort: "low" }, env)
+    : ollamaStream({ model, system, messages: turns, url: env.OLLAMA_URL || "http://localhost:11434" });
 }
