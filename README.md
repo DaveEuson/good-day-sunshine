@@ -114,3 +114,7 @@ The Pi/Jetson can also *run* the server (`node server.js`, Node ≥ 20) and Olla
 - `POST /api/garden/{water|harvest|plant|buy}?u=` – `{ seed }` / `{ kind, id }` → `{ garden }`
 
 Keys: `r` refresh · `c` chat · `o` options.
+
+## License
+
+MIT
