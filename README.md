@@ -16,7 +16,7 @@ GitHub and attention work with no setup if `gh auth login` has been run. Weather
 ## Install (Windows)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scriptsinstall.ps1
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ```
 
 Installs Node if missing (winget), puts a sun in the tray, starts at login, and opens your page. Tray menu: Open, Options, TV mode, Start at login, Open page when I start, Quit. Uninstall with `-Uninstall`. Nothing else is installed; it is a PowerShell tray around `node server.js`.
@@ -43,11 +43,11 @@ Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sound
 | `email` | `user`, `max` | `GMAIL_USER` + `GMAIL_APP_PASSWORD` (Google → Security → 2-Step → App passwords) |
 | `news` | `feeds` [urls], `perFeed`, `max` | nothing. Default: HN front page, BBC World, Ars Technica |
 | `garden` | – | nothing |
-| `github` | `user`, `top` | `GITHUB_TOKEN` or `gh` (traffic needs push access) |
+| `github` | `user`, `top`, `window` (days, default 14) | `GITHUB_TOKEN` or `gh` (traffic needs push access) |
 | `youtube` | `channelId` | `YOUTUBE_API_KEY` |
 | `twitch` | `login` | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`; followers need `TWITCH_USER_TOKEN` |
 
-Any widget accepts `title` (rename) and `key` (pin its history across config edits; default: type).
+Any widget accepts `title` (rename), `key` (pin its history across config edits; default: type) and `window` (days: deltas compare against this many days ago, sparklines cover twice that; default 7). GitHub also sums traffic over `window`: the API only serves 14 days, so each day is stored in `data/dailies.jsonl` and longer windows fill in as days are collected.
 
 ### Add a widget type
 
@@ -85,6 +85,7 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 
 - **Brief**: `OLLAMA_MODEL` (default `qwen3.5:9b`) writes three sentences from the live data, in the tone you picked, aware of what you said steals your day. Cached 5 min.
 - **Chat**: 💬 or `c`. Streams from `CHAT_MODEL` (default `llama3.2:3b`) with the current dashboard as system context. Local models keep everything on the machine.
+- **OpenRouter**: paste an OpenRouter key in Keys, pick any `openrouter/vendor/model` in the AI section. One key for hosted Claude, Gemini, GPT, Llama, DeepSeek, Qwen. For installs without a GPU (a Pi hosting the server) this is the cheap route: this workload is a few cents a day. The AI section shows a ⚠ whenever a cloud model is selected, because the payload includes calendar titles, email subjects and notifications.
 - **Claude**: paste an Anthropic API key in ⚙ Options → Keys, then pick `claude-opus-5` (or sonnet/haiku) as the brief and/or chat model. Small local models misread numbers now and then; Claude does not. Uses the official SDK with adaptive thinking, low effort, and server-side refusal fallbacks. The wizard asks for the key too.
 
 ## Displays

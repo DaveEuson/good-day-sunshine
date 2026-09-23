@@ -26,7 +26,8 @@
     {
       "type": "github",
       "user": "DaveEuson",
-      "top": 6
+      "top": 6,
+      "window": 30
     },
     {
       "type": "youtube"
@@ -43,5 +44,6 @@
   "display": {
     "cycleSec": 10
   },
-  "onboarded": true
+  "onboarded": true,
+  "character": "sun"
 }

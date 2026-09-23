@@ -15,6 +15,7 @@ export const providers = { github, youtube, twitch, attention, weather, calendar
 // Secrets the options menu can set. Stored in .env, never sent back to the browser.
 export const KEYS = [
   { key: "ANTHROPIC_API_KEY", label: "Anthropic API key", help: "Lets Claude write the brief and answer chat instead of a local model. Pick a claude-* model in the AI section.", url: "https://console.anthropic.com/settings/keys" },
+  { key: "OPENROUTER_API_KEY", label: "OpenRouter API key", help: "One key, any hosted model. Pick an openrouter/… model in the AI section. Sends your dashboard data to OpenRouter.", url: "https://openrouter.ai/keys" },
   { key: "GITHUB_TOKEN", label: "GitHub token", help: "Optional if `gh auth login` is done. Scopes: repo, notifications.", url: "https://github.com/settings/tokens" },
   { key: "YOUTUBE_API_KEY", label: "YouTube API key", help: "Google Cloud → APIs → YouTube Data API v3 → Credentials.", url: "https://console.cloud.google.com/apis/credentials" },
   { key: "YOUTUBE_CHANNEL_ID", label: "YouTube channel id", help: "UC… (YouTube Studio → Settings → Channel → Advanced).", secret: false },
@@ -29,7 +30,7 @@ export const KEYS = [
 
 // Shown in the options menu as the per-widget options placeholder.
 export const OPTION_HINTS = {
-  github: '{"user":"your-login","top":6}',
+  github: '{"user":"your-login","top":6,"window":14}',
   youtube: '{"channelId":"UC..."}',
   twitch: '{"login":"yourchannel"}',
   attention: "{}",

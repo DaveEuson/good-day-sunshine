@@ -1,10 +1,10 @@
-// Chat grounded in dashboard data. Returns an async iterable of text chunks from Ollama or Claude.
-import { isClaude, claudeStream, ollamaStream } from "./ai.js";
+// Chat grounded in dashboard data. Returns an async iterable of text chunks from whichever provider CHAT_MODEL names.
+import { aiStream } from "./ai.js";
 
 function context(widgets) {
   return (widgets ?? []).map((w) => {
     if (w.setup || w.error) return `${w.title}: not configured`;
-    const stats = (w.stats ?? []).map((s) => `${s.label}=${s.value}${s.delta != null ? ` (${s.delta >= 0 ? "+" : ""}${s.delta} vs 7d ago)` : ""}`).join(", ");
+    const stats = (w.stats ?? []).map((s) => `${s.label}=${s.value}${s.delta != null ? ` (${s.delta >= 0 ? "+" : ""}${s.delta} vs ${s.window ?? 7}d ago)` : ""}`).join(", ");
     const items = [...(w.attention ?? []), ...(w.items ?? [])].slice(0, 10).map((i) => `- ${i.text}${i.badge ? ` [${i.badge}]` : ""}${i.sub ? ` · ${i.sub}` : ""}`).join("\n");
     return `## ${w.title}\n${stats}\n${items}`;
   }).join("\n\n");
@@ -17,7 +17,5 @@ export function chat({ messages, widgets, name }, env) {
 DATA:
 ${context(widgets)}`;
   const turns = messages.slice(-20).map(({ role, content }) => ({ role, content }));
-  return isClaude(model)
-    ? claudeStream({ model, system, messages: turns, effort: "low" }, env)
-    : ollamaStream({ model, system, messages: turns, url: env.OLLAMA_URL || "http://localhost:11434" });
+  return aiStream({ model, system, messages: turns, effort: "low" }, env);
 }

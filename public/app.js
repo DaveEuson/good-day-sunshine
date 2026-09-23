@@ -47,11 +47,11 @@ function spark(series) {
   const pts = series.map((v, i) => `${(i / (series.length - 1)) * w},${h - ((v - min) / span) * (h - 2) - 1}`).join(" ");
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>`;
 }
-function delta(d) {
+function delta(d, w = 7) {
   if (d == null || d === 0) return "";
-  return `<span class="delta ${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d).toLocaleString()}</span>`;
+  return `<span class="delta ${d > 0 ? "up" : "down"}" title="vs ${w} days ago">${d > 0 ? "▲" : "▼"} ${Math.abs(d).toLocaleString()}</span>`;
 }
-const stat = (s) => `<div class="stat"><div class="v">${fmt(s.value)}${delta(s.delta)}</div><div class="l">${esc(s.label)}</div>${s.sub ? `<div class="s">${esc(s.sub)}</div>` : ""}${spark(s.series)}</div>`;
+const stat = (s) => `<div class="stat"><div class="v">${fmt(s.value)}${delta(s.delta, s.window)}</div><div class="l">${esc(s.label)}</div>${s.sub ? `<div class="s">${esc(s.sub)}</div>` : ""}${spark(s.series)}</div>`;
 const link = (i, cls) => i.url ? `<a class="${cls}" href="${esc(i.url)}" target="_blank" rel="noopener">` : `<span class="${cls}">`;
 const endLink = (i) => (i.url ? "</a>" : "</span>");
 
@@ -191,7 +191,7 @@ async function openSettings() {
     f.OLLAMA_URL.value = models.url;
     const opts = (cur) => [...new Set([cur, ...models.models])].filter(Boolean).map((m) => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("");
     $("#brief-model").innerHTML = opts(models.brief); $("#chat-model-sel").innerHTML = opts(models.chat);
-    $("#ai-status").textContent = [models.local ? `${models.local} local models` : "Ollama not reachable", models.claude ? "Claude ready" : "add an Anthropic key for Claude"].join(" · ");
+    $("#ai-status").textContent = [models.local ? `${models.local} local models` : "Ollama not reachable", models.claude ? "Claude ready" : "", models.openrouter ? "OpenRouter ready" : "", models.cloud?.length ? `⚠ dashboard data is sent to ${[...new Set(models.cloud)].join(" and ")}` : "nothing leaves this machine"].filter(Boolean).join(" · ");
   }
   // Keys
   keyMeta = envInfo ?? [];

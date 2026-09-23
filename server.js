@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { providers, OPTION_HINTS, KEYS } from "./providers/index.js";
 import { brief } from "./brief.js";
 import { chat } from "./chat.js";
-import { CLAUDE_MODELS } from "./ai.js";
+import { CLAUDE_MODELS, openrouterModels, provider } from "./ai.js";
 import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 
@@ -66,12 +66,12 @@ async function runWidget(w, i, user) {
   const hkey = `${user}:${w.key ?? w.type}`;
   try {
     const data = await cached(`${user}:${JSON.stringify(w)}`, async () => {
-      const d = await p.fetchData(w, env);
+      const d = await p.fetchData(w, env, { history });
       if (d.stats) history.record(hkey, d.stats);
       return d;
     });
     const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data };
-    if (out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats));
+    if (out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);
     return out;
   } catch (e) {
     return { ...base, icon: p.meta.icon, error: e.message };
@@ -132,7 +132,10 @@ http.createServer(async (req, res) => {
       const updates = await body(req);
       const allowed = new Set([...KEYS.map((k) => k.key), "OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]);
       // picking a claude-* model without a key is a dead end; say so before writing
-      for (const k of ["OLLAMA_MODEL", "CHAT_MODEL"]) if (/^claude-/.test(updates[k] || "") && !(updates.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY)) return json(res, 400, { error: `${updates[k]} needs an Anthropic API key (Keys section).` });
+      for (const k of ["OLLAMA_MODEL", "CHAT_MODEL"]) {
+        if (/^claude-/.test(updates[k] || "") && !(updates.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY)) return json(res, 400, { error: `${updates[k]} needs an Anthropic API key (Keys section).` });
+        if (/^openrouter\//.test(updates[k] || "") && !(updates.OPENROUTER_API_KEY || env.OPENROUTER_API_KEY)) return json(res, 400, { error: `${updates[k]} needs an OpenRouter API key (Keys section).` });
+      }
       for (const k of Object.keys(updates)) if (!allowed.has(k)) return json(res, 400, { error: `Not a settable key: ${k}` });
       writeEnv(updates);
       cache.clear();
@@ -143,7 +146,9 @@ http.createServer(async (req, res) => {
       let local = [];
       try { local = (await (await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) })).json()).models.map((m) => m.name); } catch {}
       const claude = env.ANTHROPIC_API_KEY ? CLAUDE_MODELS : [];
-      return json(res, 200, { ok: local.length + claude.length > 0, url: base, local: local.length, claude: claude.length > 0, models: [...claude, ...local], brief: env.OLLAMA_MODEL || (local.length ? "qwen3.5:9b" : ""), chat: env.CHAT_MODEL || (local.length ? "llama3.2:3b" : "") });
+      const or = await openrouterModels(env);
+      const brief = env.OLLAMA_MODEL || (local.length ? "qwen3.5:9b" : ""), chat = env.CHAT_MODEL || (local.length ? "llama3.2:3b" : "");
+      return json(res, 200, { ok: local.length + claude.length + or.length > 0, url: base, local: local.length, claude: claude.length > 0, openrouter: or.length > 0, models: [...claude, ...or, ...local], brief, chat, cloud: [provider(brief), provider(chat)].filter((p) => p !== "ollama") });
     }
 
     const um = url.pathname.match(/^\/api\/users\/([a-z0-9_-]+)$/i);
