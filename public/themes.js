@@ -1,15 +1,14 @@
-// Theme presets. Each is a set of CSS variables. Add one → appears in picker.
-// `locked: true` themes are bought with garden tokens (costs live in garden.js THEME_COSTS).
+// Theme tokens from the Claude Design handoff (design_handoff_good_day_sunshine). Each theme = CSS vars on :root.
+// `locked: true` themes are bought with garden tokens (costs in garden.js THEME_COSTS).
 window.THEMES = {
-  sunrise:  { name: "Sunrise",  bg: "#fff7ea", page: "linear-gradient(180deg,#ffe9c7 0%,#fff7ea 38%,#fffdf8 100%)", card: "#ffffff", text: "#2a1d10", muted: "#8a7457", accent: "#f07f1f", border: "#f3e2c8", font: "system-ui, -apple-system, Segoe UI, sans-serif" },
-  sky:      { name: "Sky",      bg: "#eef6ff", page: "linear-gradient(180deg,#d9ecff 0%,#eef6ff 45%,#ffffff 100%)", card: "#ffffff", text: "#0f1f33", muted: "#5f7690", accent: "#1e88e5", border: "#d6e6f7", font: "system-ui, sans-serif" },
-  midnight: { name: "Midnight", bg: "#0b1020", card: "#131a2e", text: "#e6e9f2", muted: "#8b93ad", accent: "#7aa2ff", border: "#222b47", font: "system-ui, -apple-system, Segoe UI, sans-serif" },
-  paper:    { name: "Paper",    bg: "#f6f3ec", card: "#ffffff", text: "#1e1c18", muted: "#7a756b", accent: "#c2410c", border: "#e6e1d6", font: "Georgia, 'Iowan Old Style', serif" },
-  forest:   { name: "Forest",   bg: "#0f1a14", card: "#16241c", text: "#e3efe6", muted: "#8aa693", accent: "#5ad27d", border: "#243a2e", font: "system-ui, sans-serif" },
-  ember:    { name: "Ember",    bg: "#1a0f0f", card: "#261515", text: "#f5e9e6", muted: "#b08d86", accent: "#ff7a45", border: "#3d2424", font: "system-ui, sans-serif" },
-  terminal: { name: "Terminal", bg: "#000000", card: "#0a0f0a", text: "#b8f5b8", muted: "#5f8f5f", accent: "#39ff14", border: "#1f3a1f", font: "ui-monospace, Consolas, monospace" },
-  slate:    { name: "Slate",    bg: "#eef1f5", card: "#ffffff", text: "#111827", muted: "#6b7280", accent: "#2563eb", border: "#dfe3ea", font: "Inter, system-ui, sans-serif" },
-  aurora:   { name: "Aurora",   bg: "#0c1528", page: "linear-gradient(160deg,#0a0f1f 0%,#10203a 45%,#0b2a2a 100%)", card: "rgba(20,30,55,.75)", text: "#e8f4ff", muted: "#8fb3c9", accent: "#5ee6c8", border: "#22405a", font: "system-ui, sans-serif", locked: true },
-  sakura:   { name: "Sakura",   bg: "#fff5f7", card: "#ffffff", text: "#3b1f2b", muted: "#a07a8a", accent: "#e8548a", border: "#f5d5de", font: "'Segoe UI', system-ui, sans-serif", locked: true },
-  gold:     { name: "Gold",     bg: "#0e0c08", card: "#1a1610", text: "#f5ecd7", muted: "#a8996f", accent: "#f2c14e", border: "#3a3220", font: "Georgia, serif", locked: true },
+  sunrise:  { name: "Sunrise",  bg: "#fff7ea", page: "linear-gradient(180deg,#ffe4b8 0%,#fff7ea 42%,#fffdf8 100%)", card: "#ffffff", text: "#2a1d10", muted: "#7a6349", accent: "#d1620a", border: "#f0e0c6", alert: "#c0341d", onAccent: "#fff7ea", font: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
+  meadow:   { name: "Meadow",   bg: "#f3f6ef", page: "linear-gradient(180deg,#e6efe0 0%,#f3f6ef 45%,#fbfcf9 100%)", card: "#ffffff", text: "#17241a", muted: "#61705f", accent: "#2f7d4f", border: "#dde6d6", alert: "#b42318", onAccent: "#ffffff", font: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
+  sky:      { name: "Sky",      bg: "#eef6ff", page: "linear-gradient(180deg,#d9ecff 0%,#eef6ff 45%,#ffffff 100%)", card: "#ffffff", text: "#0f1f33", muted: "#5f7690", accent: "#1e88e5", border: "#d6e6f7", alert: "#c0341d", onAccent: "#ffffff", font: "system-ui, sans-serif" },
+  paper:    { name: "Paper",    bg: "#f6f3ec", page: "#f6f3ec", card: "#fffdf8", text: "#1e1c18", muted: "#6f6a5f", accent: "#b3400d", border: "#e4ded1", alert: "#a51c12", onAccent: "#fffdf8", font: "Georgia, 'Iowan Old Style', serif" },
+  midnight: { name: "Midnight", bg: "#0b1020", page: "linear-gradient(180deg,#0d1428 0%,#0b1020 60%)", card: "#141b30", text: "#e9ecf5", muted: "#9aa3bd", accent: "#7aa2ff", border: "#232c49", alert: "#ff8f8f", onAccent: "#0b1020", font: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
+  terminal: { name: "Terminal", bg: "#000000", page: "#000000", card: "#080d08", text: "#b8f5b8", muted: "#7fbf7f", accent: "#39ff14", border: "#1f3a1f", alert: "#ff6b6b", onAccent: "#000000", font: "ui-monospace, Consolas, monospace" },
+  sakura:   { name: "Sakura",   bg: "#fff5f7", page: "linear-gradient(180deg,#ffe4ea 0%,#fff5f7 45%,#fffafb 100%)", card: "#ffffff", text: "#3b1f2b", muted: "#8e6675", accent: "#c8306c", border: "#f5d5de", alert: "#b3123c", onAccent: "#ffffff", font: "'Segoe UI', system-ui, sans-serif", locked: true },
+  dusk:     { name: "Dusk",     bg: "#14111c", page: "linear-gradient(180deg,#1a1626 0%,#14111c 60%)", card: "#1e1a2b", text: "#efecf7", muted: "#a49dba", accent: "#b592ff", border: "#2e2842", alert: "#ff8a95", onAccent: "#14111c", font: "system-ui, -apple-system, 'Segoe UI', sans-serif", locked: true },
+  aurora:   { name: "Aurora",   bg: "#0c1528", page: "linear-gradient(160deg,#0a0f1f 0%,#10203a 45%,#0b2a2a 100%)", card: "rgba(20,30,55,.8)", text: "#e8f4ff", muted: "#8fb3c9", accent: "#5ee6c8", border: "#22405a", alert: "#ff8f8f", onAccent: "#0c1528", font: "system-ui, sans-serif", locked: true },
+  gold:     { name: "Gold",     bg: "#0e0c08", page: "#0e0c08", card: "#1a1610", text: "#f5ecd7", muted: "#a8996f", accent: "#f2c14e", border: "#3a3220", alert: "#ff8a80", onAccent: "#0e0c08", font: "Georgia, serif", locked: true },
 };

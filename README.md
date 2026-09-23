@@ -63,6 +63,16 @@ Register it in `providers/index.js` (and add an `OPTION_HINTS` entry so the opti
 
 `public/themes.js`. One object per theme, six CSS variables (+ optional `page` gradient). `locked: true` themes are bought with garden tokens; costs in `garden.js`.
 
+## The hero
+
+Top of the page answers one question: what matters this morning. A character face (Sun, Cat, Robot, Cloud, Coffee; generated SVG, recoloured by theme, worried when something is urgent, outfits unlock with streaks), a greeting, an **answer headline** built only from real data ("A review is waiting: … Standup at 09:00." or "Nothing's blocking you today."), chips (urgent, weather, unread, today's events, water the plant), and a **mood row**. Mood shapes the greeting and the brief (rough = one gentle sentence, news hidden), never the facts. With a calendar connected, a **countdown ring** drains over the last hour to your next event.
+
+## Just one thing
+
+Press `j`, the header button, or "Do it now" on an urgent item. Full-screen 25-minute ring, Pause/Done, the task split into four small steps by your chat model (plain default if the model is slow), character keeping you company. Done it → +5 garden tokens, max four blocks a day.
+
+Design tokens, card anatomy, and these two features come from the Claude Design handoff (`design_handoff_good_day_sunshine`, not committed: 240 KB of design-only prototype HTML).
+
 ## Deltas + sparklines
 
 Every fresh fetch appends numeric stats to `data/history.jsonl`. Stats show ▲/▼ vs 7 days ago (or vs the oldest sample ≥1 day old) and a 14-day sparkline once there is more than one day of data. 90-day retention.

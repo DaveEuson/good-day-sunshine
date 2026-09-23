@@ -88,7 +88,17 @@ export function buy(s, kind, id) {
   return s;
 }
 
-export const ACTIONS = { water, harvest, plant: (s, b) => plant(s, b.seed), buy: (s, b) => buy(s, b.kind, b.id) };
+// Finished a "Just one thing" focus block. Capped so it can't be farmed.
+export function focus(s, now = Date.now()) {
+  const today = dayStr(now);
+  if (s.focusDay !== today) { s.focusDay = today; s.focusToday = 0; }
+  if (s.focusToday >= 4) throw new Error("That's four blocks today. Rest counts too.");
+  s.focusToday++; s.tokens += 5;
+  note(s, `Focus block done · +5`);
+  return s;
+}
+
+export const ACTIONS = { water, harvest, focus, plant: (s, b) => plant(s, b.seed), buy: (s, b) => buy(s, b.kind, b.id) };
 
 export function store(dir) {
   const file = (u) => path.join(dir, `${u}.json`);

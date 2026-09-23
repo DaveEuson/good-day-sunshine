@@ -9,22 +9,20 @@
 </head>
 <body>
 <header class="top">
-  <div>
-    <h1 id="greeting">Good day, sunshine</h1>
-    <p id="date" class="muted"></p>
-    <p id="hero" class="hero"></p>
-  </div>
+  <div class="topbar-left"><span id="date" class="date"></span><span id="clock" class="clock"></span></div>
   <div class="controls">
     <span id="tokens" class="pill" title="Garden tokens"></span>
-    <span id="clock" class="pill clock"></span>
     <select id="user" title="Profile"></select>
     <select id="theme" title="Theme"></select>
     <input id="accent" type="color" title="Accent">
     <button id="refresh" title="Refresh data (r)">↻</button>
     <button id="chat-toggle" title="Chat (c)">💬</button>
     <button id="settings-toggle" title="Options (o)">⚙</button>
+    <button id="focus-toggle" class="primary" title="Just one thing (j)">Just one thing</button>
   </div>
 </header>
+
+<section id="hero-block" class="hero"><h1 id="greeting" class="answer"><b>Good day, sunshine.</b></h1></section>
 
 <section id="brief" class="card brief"><p class="muted">Thinking…</p></section>
 
@@ -48,6 +46,7 @@
     <div class="fields">
       <label>Name <input name="name" required></label>
       <label>Default theme <select name="theme" id="settings-theme"></select></label>
+      <label>Character <select name="character"><option value="sun">Sun · warm, a little nudgy</option><option value="cat">Cat · dry, secretly kind</option><option value="robot">Robot · precise</option><option value="cloud">Cloud · soft</option><option value="coffee">Coffee · quick</option></select></label>
       <label>Accent <input name="accent" placeholder="#7aa2ff or blank"></label>
       <label><input type="checkbox" name="briefEnabled"> Morning brief</label>
       <label>Brief tone <input name="tone" placeholder="warm, concise"></label>
@@ -74,9 +73,13 @@
 
 <div id="night" hidden><div id="night-clock"></div><div class="hint">quiet hours · tap to wake</div></div>
 <div id="wizard" class="wizard" hidden></div>
+<div id="focus" class="focus" hidden></div>
+<div id="toast" class="toast" hidden></div>
 
 <script src="/themes.js"></script>
+<script src="/face.js"></script>
 <script src="/sfx.js"></script>
+<script src="/hero.js"></script>
 <script src="/wizard.js"></script>
 <script src="/app.js"></script>
 </body>

@@ -5,7 +5,7 @@
 window.runWizard = async function runWizard({ existing = null, onDone }) {
   const $w = document.getElementById("wizard");
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const a = { name: existing?.name ?? "", tone: existing?.brief?.tone ?? "", focus: existing?.brief?.focus ?? "", w: {}, keys: {}, theme: existing?.theme ?? "sunrise", quiet: existing?.quiet ?? null, sound: existing?.sound ?? true, model: null };
+  const a = { name: existing?.name ?? "", character: existing?.character ?? "sun", tone: existing?.brief?.tone ?? "", focus: existing?.brief?.focus ?? "", w: {}, keys: {}, theme: existing?.theme ?? "sunrise", quiet: existing?.quiet ?? null, sound: existing?.sound ?? true, model: null };
   for (const x of existing?.widgets ?? []) a.w[x.type] = { ...x };
   let models = null;
   try { models = await (await fetch("/api/models")).json(); } catch {}
@@ -21,7 +21,8 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
   // Each step: { q, sub?, render, read, when?, skip? }. q can be a function of the answers so far.
   const steps = [
     { q: "Good day. What should I call you?", render: () => text("wz-in", "your name", a.name), read: () => { a.name = v("#wz-in").trim(); if (!a.name) throw "I need something to call you."; } },
-    { q: () => `Morning, ${a.name}. How should I talk to you first thing?`, render: () => choices([["Warm and steady", "warm, steady, encouraging"], ["Direct and efficient", "direct, efficient, no fluff"], ["Playful but useful", "playful, light, still useful"], ["A little dry", "warm, concise, a little dry"]], a.tone), read: () => { a.tone = picked() || "warm, concise"; } },
+    { q: () => `Morning, ${a.name}. Who should greet you?`, sub: "Changes the voice and the face, never the facts.", render: () => `<div class="wz-themes">${Object.entries(CHARACTERS).map(([id, n]) => `<button type="button" class="wz-theme wz-char ${a.character === id ? "on" : ""}" data-char="${id}"><img src="${faceURI(id, false, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(), THEMES[document.documentElement.dataset.theme]?.card || "#fff")}" width="44" height="44" alt=""> ${n}</button>`).join("")}</div>`, read: () => {} },
+    { q: () => `How should I talk to you first thing?`, render: () => choices([["Warm and steady", "warm, steady, encouraging"], ["Direct and efficient", "direct, efficient, no fluff"], ["Playful but useful", "playful, light, still useful"], ["A little dry", "warm, concise, a little dry"]], a.tone), read: () => { a.tone = picked() || "warm, concise"; } },
     { q: "What usually steals your day?", sub: "I'll keep it in mind when I write your brief.", render: () => choices([["Context switching", "context switching"], ["Avoidance", "avoiding the hard thing"], ["Too many tabs", "too many tabs and threads"], ["Meetings", "meetings eating the morning"], ["Nothing in particular", ""]], a.focus), read: () => { a.focus = picked(); } },
 
     { q: "Do you write code on GitHub?", sub: "I'll show stars, traffic, and anything waiting on you: reviews, mentions, assignments.", render: () => yesno(on("github")), read: () => { yn("github", { top: 6 })(); if (picked()) a.w.attention ??= {}; else delete a.w.attention; } },
@@ -74,6 +75,8 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
     $w.onclick = (e) => {
       const c = e.target.closest(".wz-choice");
       if (c) { c.parentElement.querySelectorAll(".wz-choice").forEach((x) => x.classList.toggle("on", x === c)); if (c.closest(".wz-body")?.querySelectorAll(".wz-choices").length === 1 && !$w.querySelector(".wz-text")) next(); return; }
+      const ch = e.target.closest(".wz-char");
+      if (ch) { a.character = ch.dataset.char; $w.querySelectorAll(".wz-char").forEach((x) => x.classList.toggle("on", x === ch)); return; }
       const t = e.target.closest(".wz-theme");
       if (t) { a.theme = t.dataset.theme; applyTheme(a.theme, null); $w.querySelectorAll(".wz-theme").forEach((x) => x.classList.toggle("on", x === t)); return; }
       if (e.target.id === "wz-next") next();
@@ -90,7 +93,7 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
     const order = ["attention", "calendar", "weather", "email", "garden", "news", "github", "youtube", "twitch"];
     const widgets = order.filter((t) => a.w[t]).map((t) => ({ type: t, ...a.w[t] }));
     if (!widgets.length) widgets.push({ type: "weather", units: "c" }, { type: "news", max: 8 });
-    const cfg = { ...(existing ?? {}), name: a.name, theme: a.theme, accent: existing?.accent ?? null, widgets, brief: { enabled: !!a.model || !!a.keys.ANTHROPIC_API_KEY || !models?.ok, tone: a.tone, ...(a.focus ? { focus: a.focus } : {}) }, sound: a.sound, quiet: a.quiet ?? undefined, display: existing?.display ?? { cycleSec: 12 }, onboarded: true };
+    const cfg = { ...(existing ?? {}), name: a.name, character: a.character, theme: a.theme, accent: existing?.accent ?? null, widgets, brief: { enabled: !!a.model || !!a.keys.ANTHROPIC_API_KEY || !models?.ok, tone: a.tone, ...(a.focus ? { focus: a.focus } : {}) }, sound: a.sound, quiet: a.quiet ?? undefined, display: existing?.display ?? { cycleSec: 12 }, onboarded: true };
     delete cfg.slug;
     try {
       let r = await (await fetch(`/api/users/${slug}`, { method: "PUT", body: JSON.stringify(cfg) })).json();

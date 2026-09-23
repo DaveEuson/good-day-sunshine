@@ -78,6 +78,7 @@ export async function fetchData(cfg, env) {
     : e.start.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
 
   return {
+    next: next ? { title: next.title ?? "(untitled)", start: next.start.toISOString() } : null,
     stats: [
       { label: "Today", value: today.length },
       { label: "Next", value: next ? next.start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "—", sub: next?.title },

@@ -3,7 +3,7 @@ const params = new URLSearchParams(location.search);
 const MODE = params.get("mode") || "";           // "" | "tv" | "small"
 let user = params.get("u") || localStorage.getItem("ld:user") || "dave";
 let data = null;
-let gardenState = null;
+let gardenState = null; window.gardenState = null;
 let catalog = [];
 document.body.classList.toggle("tv", MODE === "tv");
 document.body.classList.toggle("small", MODE === "small");
@@ -15,6 +15,8 @@ function applyTheme(key, accent) {
   for (const k of ["bg", "card", "text", "muted", "accent", "border", "font"]) r.setProperty(`--${k}`, t[k]);
   r.setProperty("--page", t.page ?? t.bg);
   r.setProperty("--on-accent", t.onAccent ?? t.bg);
+  r.setProperty("--alert", t.alert ?? "#c0341d");
+  document.documentElement.dataset.theme = THEMES[key] ? key : "sunrise";
   if (accent) r.setProperty("--accent", accent);
   $("#theme").value = key;
   $("#accent").value = accent || (t.accent.startsWith("#") ? t.accent : "#7aa2ff");
@@ -55,24 +57,25 @@ const endLink = (i) => (i.url ? "</a>" : "</span>");
 
 function widget(w) {
   if (w.type === "garden") return gardenCard(w);
-  const cls = ["card", "widget", w.setup || w.error ? "dim" : "", w.attention?.some((a) => a.level === "high") ? "alert" : ""].join(" ");
+  const urgent = w.attention?.some((a) => a.level === "high");
+  const cls = ["card", "widget", w.setup || w.error ? "dim" : "", urgent ? "alert" : ""].join(" ");
   let body = "";
   if (w.setup) body = `<p class="hint">${esc(w.setup)}</p>`;
   else if (w.error) body = `<p class="err">${esc(w.error)}</p>`;
   else {
     if (w.stats?.length) body += `<div class="stats">${w.stats.map(stat).join("")}</div>`;
     if (w.attention?.length)
-      body += `<ul class="items att">${w.attention.map((a) => `<li class="${a.level}">${link(a, "t")}${esc(a.text)}${endLink(a)}</li>`).join("")}</ul>`;
+      body += `<ul class="items att">${w.attention.map((a) => `<li class="${a.level}">${link(a, "t")}${esc(a.text)}${endLink(a)}${a.level === "high" ? `<button class="mini" data-focus="${esc(a.text)}">Do it now</button>` : ""}</li>`).join("")}</ul>`;
     else if (w.type === "attention") body += `<p class="hint">Inbox zero. Nothing needs you.</p>`;
     if (w.items?.length)
       body += `<ul class="items">${w.items.map((i) => `<li>${link(i, "t")}${esc(i.text)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}${endLink(i)}<span class="b">${esc(i.badge ?? "")}</span></li>`).join("")}</ul>`;
   }
-  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}"><h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
+  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
 }
 
 // ---------- garden ----------
 function gardenCard(w) {
-  const g = gardenState = w.garden ?? gardenState;
+  const g = gardenState = window.gardenState = w.garden ?? gardenState;
   $("#tokens").textContent = `🪙 ${g.tokens} · 🔥 ${g.streak}`;
   renderThemePicker();
   const p = g.plantView;
@@ -119,22 +122,6 @@ $("#grid").addEventListener("click", async (e) => {
   else (SFX[b.dataset.g === "buy" ? "unlock" : b.dataset.g] ?? SFX.tap)();
 });
 
-// one line under the greeting: weather · next event · what needs you
-function heroLine(ws) {
-  const bits = [];
-  const wx = ws.find((w) => w.type === "weather" && w.stats);
-  if (wx) bits.push(`${wx.stats[0].value} ${wx.stats[0].label.toLowerCase()}, high ${wx.stats[1].value.split(" / ")[0]}`);
-  const cal = ws.find((w) => w.type === "calendar" && w.stats);
-  if (cal) { const n = cal.stats.find((s) => s.label === "Next"); bits.push(n?.sub ? `next: ${n.value} ${n.sub}` : "nothing on the calendar"); }
-  const att = ws.flatMap((w) => w.attention ?? []);
-  const high = att.filter((a) => a.level === "high").length;
-  bits.push(att.length ? `${att.length} need you${high ? ` (${high} urgent)` : ""}` : "nothing needs you");
-  $("#hero").classList.toggle("hot", high > 0);
-  const mail = ws.find((w) => w.type === "email" && w.stats);
-  if (mail) bits.push(`${mail.stats[0].value} unread`);
-  return bits.join(" · ");
-}
-
 // ---------- brief ----------
 function greeting(name) {
   const h = new Date().getHours();
@@ -146,7 +133,7 @@ async function loadBrief() {
   $("#brief").hidden = false;
   $("#brief").innerHTML = `<p class="muted">Writing your brief…</p>`;
   try {
-    const r = await fetch("/api/brief", { method: "POST", body: JSON.stringify({ widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus }) });
+    const r = await fetch("/api/brief", { method: "POST", body: JSON.stringify({ widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus, mood: getMood(user) }) });
     const j = await r.json();
     $("#brief").innerHTML = `<p>${esc(j.text || j.error)}</p>`;
   } catch (e) {
@@ -210,7 +197,7 @@ async function openSettings() {
   keyMeta = envInfo ?? [];
   $("#key-list").innerHTML = keyMeta.map((k) => `<label title="${esc(k.help)}">${esc(k.label)}${k.url ? ` <a href="${esc(k.url)}" target="_blank" rel="noopener">↗</a>` : ""}
     <input name="env:${k.key}" ${k.secret === false ? `value="${esc(k.value ?? "")}"` : `type="password" placeholder="${k.set ? "•••••• (set)" : "not set"}"`} autocomplete="off"></label>`).join("");
-  f.name.value = cfg.name; f.theme.value = cfg.theme ?? "midnight"; f.accent.value = cfg.accent ?? "";
+  f.name.value = cfg.name; f.theme.value = cfg.theme ?? "sunrise"; f.character.value = cfg.character ?? "sun"; f.accent.value = cfg.accent ?? "";
   f.briefEnabled.checked = cfg.brief?.enabled !== false; f.tone.value = cfg.brief?.tone ?? "";
   f.sound.checked = !!cfg.sound;
   f.quietStart.value = cfg.quiet?.start ?? ""; f.quietEnd.value = cfg.quiet?.end ?? "";
@@ -263,7 +250,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
   try {
     const widgets = readWidgetRows().filter((w) => w.on).map(({ on, ...w }) => w);
     const cfg = {
-      ...data.config, name: f.name.value.trim(), theme: f.theme.value, accent: f.accent.value.trim() || null,
+      ...data.config, name: f.name.value.trim(), theme: f.theme.value, character: f.character.value, accent: f.accent.value.trim() || null,
       brief: { enabled: f.briefEnabled.checked, tone: f.tone.value.trim() || undefined },
       sound: f.sound.checked,
       quiet: f.quietStart.value && f.quietEnd.value ? { start: f.quietStart.value, end: f.quietEnd.value } : undefined,
@@ -338,15 +325,17 @@ async function load(refresh = false) {
   const p = themePrefs();
   applyTheme(p.theme || data.theme, p.accent ?? data.accent);
   document.title = `${data.user} · Good Day Sunshine`;
-  $("#greeting").textContent = greeting(data.user);
-  $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  window.data = data;
+  $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  gardenState = window.gardenState = data.widgets.find((w) => w.type === "garden")?.garden ?? null;
+  renderHero(data, user, () => { renderHero(data, user); loadBrief(); });
   $("#chat-model").textContent = data.chatModel;
-  const ready = data.widgets.filter((w) => !w.setup && !w.error), pending = data.widgets.filter((w) => w.setup), broken = data.widgets.filter((w) => w.error);
+  const mood = getMood(user);
+  const ready = data.widgets.filter((w) => !w.setup && !w.error && !(mood === "rough" && w.type === "news")), pending = data.widgets.filter((w) => w.setup), broken = data.widgets.filter((w) => w.error);
   $("#grid").innerHTML = ready.map(widget).join("");
   $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
   $("#setup-strip").innerHTML = [broken.length ? `<span class="err">${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
   $("#setup-go")?.addEventListener("click", openSettings);
-  $("#hero").textContent = heroLine(data.widgets);
   $("#status").textContent = `Updated ${new Date().toLocaleTimeString()}`;
   $("#mode-hint").textContent = MODE ? `· ${MODE} mode` : "";
   const high = data.widgets.flatMap((w) => w.attention ?? []).filter((a) => a.level === "high").length;
@@ -368,11 +357,20 @@ $("#user").onchange = (e) => {
   localStorage.setItem("ld:user", user); history.replaceState(null, "", `?u=${user}${MODE ? "&mode=" + MODE : ""}`); load();
 };
 $("#refresh").onclick = () => load(true);
+function pickFocusTask() {
+  const att = data?.widgets.flatMap((w) => w.attention ?? []) ?? [];
+  const top = att.find((x) => x.level === "high") ?? att[0];
+  const t = prompt("Just one thing. What is it?", top ? top.text.replace(/^(Review|Assigned): /, "") : "");
+  if (t) startFocus(t, user, { onDone: () => load() });
+}
+$("#focus-toggle").onclick = pickFocusTask;
+$("#grid").addEventListener("click", (e) => { const b = e.target.closest("[data-focus]"); if (b) startFocus(b.dataset.focus.replace(/^(Review|Assigned): /, ""), user, { onDone: () => load() }); });
 document.addEventListener("keydown", (e) => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
   if (e.key === "r") load(true);
   if (e.key === "c") $("#chat-toggle").click();
   if (e.key === "o") openSettings();
+  if (e.key === "j") pickFocusTask();
 });
 
 loadUsers().then(() => load());

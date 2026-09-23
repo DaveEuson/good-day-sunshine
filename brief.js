@@ -25,12 +25,12 @@ function fallback({ widgets, name }) {
 }
 
 export async function brief(input, env) {
-  const { widgets, name, tone, focus } = input;
+  const { widgets, name, tone, focus, mood } = input;
   const url = env.OLLAMA_URL || "http://localhost:11434";
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const hour = new Date().getHours();
   const system = `You write a 3-sentence "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
-Rules: plain text, no markdown, no lists, no headings, no emoji. One to three sentences, shorter is better. Say only what is new, changed, or needs a decision: things needing attention, the first event today, a number that moved (deltas are marked "vs 7d ago"), weather only if it changes plans. Never restate a zero, an unchanged number, or anything already obvious. If nothing needs them, say that in one short sentence and stop. Copy numbers exactly as digits from DATA. Do not invent data. Sections marked "not configured" get no mention.`;
+${mood === "rough" ? "They said they feel rough this morning: one sentence, gentle, only the single most important thing. " : mood === "meh" ? "They feel meh: keep it to two short sentences. " : ""}Rules: plain text, no markdown, no lists, no headings, no emoji. One to three sentences, shorter is better. Say only what is new, changed, or needs a decision: things needing attention, the first event today, a number that moved (deltas are marked "vs 7d ago"), weather only if it changes plans. Never restate a zero, an unchanged number, or anything already obvious. If nothing needs them, say that in one short sentence and stop. Copy numbers exactly as digits from DATA. Do not invent data. Sections marked "not configured" get no mention.`;
   const data = `DATA:\n${summarize(widgets)}`;
 
   try {
