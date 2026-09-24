@@ -336,3 +336,13 @@ body.tv .ask, body.small .ask { display: none; }
 .short li { margin: 2px 0; }
 .days { display: inline-flex; gap: 4px; }
 .days label { font-size: 11px; display: inline-flex; flex-direction: column; align-items: center; gap: 0; }
+
+/* small panels: two-line brief, progress dots */
+.dots-nav { display: none; }
+body.small .brief { max-height: none; }
+body.small .brief p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; line-height: 1.4; }
+body.small .brief::before, body.small .brief::after { display: none; }
+body.small .dots-nav { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+body.small .dots-nav i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+body.small .dots-nav i.on { background: var(--accent); }
+body.small .grid > .widget.active { min-height: 200px; }

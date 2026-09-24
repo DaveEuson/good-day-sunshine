@@ -301,7 +301,13 @@ function startCycle() {
   clearInterval(cycleTimer);
   if (MODE !== "small") return;
   const cards = () => [...document.querySelectorAll("#grid > .widget:not(.dim)")];
-  const show = () => { const c = cards(); c.forEach((el, i) => el.classList.toggle("active", i === slide % c.length)); };
+  const dots = $("#dots");
+  const show = () => {
+    const c = cards(); if (!c.length) return;
+    const cur = slide % c.length;
+    c.forEach((el, i) => el.classList.toggle("active", i === cur));
+    dots.innerHTML = c.map((_, i) => `<i class="${i === cur ? "on" : ""}"></i>`).join("");
+  };
   show();
   cycleTimer = setInterval(() => { slide++; show(); }, (data.config?.display?.cycleSec ?? 12) * 1000);
   $("#grid").onclick ??= () => { slide++; show(); };
