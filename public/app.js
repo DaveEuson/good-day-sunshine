@@ -128,16 +128,26 @@ function greeting(name) {
   const g = h < 5 ? "Still up" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   return `${g}, ${name}.`;
 }
+// Template shows instantly; the model's text swaps in when it lands (or the template stays, with a note).
+let briefSeq = 0;
 async function loadBrief() {
   if (!data.brief?.enabled) { $("#brief").hidden = true; return; }
   $("#brief").hidden = false;
-  $("#brief").innerHTML = `<p class="muted">Writing your brief…</p>`;
-  try {
-    const r = await fetch("/api/brief", { method: "POST", body: JSON.stringify({ widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus, mood: getMood(user) }) });
-    const j = await r.json();
+  const seq = ++briefSeq;
+  const payload = { widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus, mood: getMood(user) };
+  const post = (extra) => fetch("/api/brief", { method: "POST", body: JSON.stringify({ ...payload, ...extra }) }).then((r) => r.json());
+  const show = (j) => {
+    if (seq !== briefSeq) return;
+    $("#brief").classList.toggle("pending", !!j.pending);
+    $("#brief").dataset.note = j.pending ? "thinking…" : j.fromModel ? "" : `summary · ${j.reason || "no model"}`;
     $("#brief").innerHTML = `<p>${esc(j.text || j.error)}</p>`;
+  };
+  try {
+    const fast = await post({ fast: true });
+    show(fast);
+    if (fast.pending) show(await post({}));
   } catch (e) {
-    $("#brief").innerHTML = `<p class="err">${esc(e.message)}</p>`;
+    if (seq === briefSeq) $("#brief").innerHTML = `<p class="err">${esc(e.message)}</p>`;
   }
 }
 

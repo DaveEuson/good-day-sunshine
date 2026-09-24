@@ -315,3 +315,8 @@ body.small #focus-toggle { display: none; }
 .ask-chips button { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; cursor: pointer; }
 .ask-chips button:hover { color: var(--text); border-color: var(--accent); }
 body.tv .ask, body.small .ask { display: none; }
+
+/* brief: instant template, model text swaps in */
+.brief.pending p { color: var(--muted); }
+.brief[data-note]:not([data-note=""])::after { content: attr(data-note); position: absolute; right: 16px; top: -8px; padding: 0 6px; background: var(--card); font-family: ui-monospace, Consolas, monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.brief.pending::after { animation: gds-pulse 1.4s infinite; }

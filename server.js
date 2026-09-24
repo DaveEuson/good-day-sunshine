@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { providers, OPTION_HINTS, KEYS } from "./providers/index.js";
-import { brief } from "./brief.js";
+import { brief, fallback } from "./brief.js";
 import { chat } from "./chat.js";
 import { CLAUDE_MODELS, openrouterModels, provider } from "./ai.js";
 import { openHistory } from "./history.js";
@@ -164,10 +164,17 @@ http.createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
 
+    // Brief: `fast: true` answers instantly (cached model text, else the template marked pending);
+    // a normal call waits up to BRIEF_TIMEOUT_MS for the model. Only model answers are cached.
     if (url.pathname === "/api/brief" && req.method === "POST") {
-      const { widgets, name, tone } = await body(req);
-      const text = await cached(`brief:${name}:${JSON.stringify(widgets).length}`, () => brief({ widgets, name, tone }, env));
-      return json(res, 200, { text });
+      const input = await body(req);
+      const key = `brief:${input.name}:${input.mood ?? ""}:${JSON.stringify(input.widgets).length}`;
+      const hit = cache.get(key);
+      if (hit && Date.now() - hit.at < TTL) return json(res, 200, { ...hit.value, cached: true });
+      if (input.fast) return json(res, 200, { text: fallback(input), fromModel: false, pending: true });
+      const out = await brief(input, env);
+      if (out.fromModel) cache.set(key, { at: Date.now(), value: out });
+      return json(res, 200, out);
     }
 
     if (url.pathname === "/api/chat" && req.method === "POST") {

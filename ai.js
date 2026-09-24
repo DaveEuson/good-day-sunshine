@@ -17,14 +17,14 @@ async function anthropic(env) {
   return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 }
 
-async function* claudeStream({ model, system, messages, effort = "low" }, env) {
+async function* claudeStream({ model, system, messages, effort = "low", signal }, env) {
   const c = await anthropic(env);
   const stream = c.beta.messages.stream({
     model, max_tokens: 64000, system, messages,
     output_config: { effort },
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-  });
+  }, { signal: signal ?? AbortSignal.timeout(TIMEOUT) });
   for await (const event of stream) {
     if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
   }
@@ -33,11 +33,11 @@ async function* claudeStream({ model, system, messages, effort = "low" }, env) {
 }
 
 // OpenRouter: SSE "data: {...}" lines, OpenAI delta format.
-async function* openrouterStream({ model, system, messages, temperature = 0.5 }, env) {
+async function* openrouterStream({ model, system, messages, temperature = 0.5, signal }, env) {
   if (!env.OPENROUTER_API_KEY) throw new Error("Add your OpenRouter API key in ⚙ Options → Keys to use OpenRouter models.");
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
-    signal: AbortSignal.timeout(TIMEOUT),
+    signal: signal ?? AbortSignal.timeout(TIMEOUT),
     headers: { Authorization: `Bearer ${env.OPENROUTER_API_KEY}`, "Content-Type": "application/json", "HTTP-Referer": "https://github.com/DaveEuson/good-day-sunshine", "X-Title": "Good Day Sunshine" },
     body: JSON.stringify({ model: model.replace(/^openrouter\//, ""), stream: true, temperature, messages: [{ role: "system", content: system }, ...messages] }),
   });
@@ -56,14 +56,15 @@ async function* openrouterStream({ model, system, messages, temperature = 0.5 },
   }
 }
 
-async function* ollamaStream({ model, system, messages, temperature = 0.5 }, env) {
+// think:false keeps reasoning models (qwen3.x, deepseek-r1) from spending the whole budget thinking; these are short tasks.
+async function* ollamaStream({ model, system, messages, temperature = 0.5, signal, think = false }, env) {
   const url = env.OLLAMA_URL || "http://localhost:11434";
   const r = await fetch(`${url}/api/chat`, {
     method: "POST",
-    signal: AbortSignal.timeout(TIMEOUT),
-    body: JSON.stringify({ model, stream: true, messages: [{ role: "system", content: system }, ...messages], options: { temperature } }),
+    signal: signal ?? AbortSignal.timeout(TIMEOUT),
+    body: JSON.stringify({ model, stream: true, think, messages: [{ role: "system", content: system }, ...messages], options: { temperature } }),
   });
-  if (!r.ok) throw new Error(`ollama chat → ${r.status}`);
+  if (!r.ok) throw new Error(`ollama ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const dec = new TextDecoder();
   let buf = "";
   for await (const chunk of r.body) {

@@ -25,7 +25,8 @@ test("fallback: never claims all clear while a source is broken", () => {
 });
 
 test("brief falls back to template when the model is unreachable", async () => {
-  const text = await brief({ widgets, name: "Test" }, { OLLAMA_URL: "http://127.0.0.1:1", OLLAMA_MODEL: "x" });
+  const { text, fromModel } = await brief({ widgets, name: "Test" }, { OLLAMA_URL: "http://127.0.0.1:1", OLLAMA_MODEL: "x" });
+  assert.equal(fromModel, false);
   assert.match(text, /Test/);
   assert.match(text, /Inbox/);
 });

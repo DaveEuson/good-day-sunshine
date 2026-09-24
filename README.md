@@ -92,7 +92,7 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 
 ## AI
 
-- **Brief**: `OLLAMA_MODEL` (default `qwen3.5:9b`) writes three sentences from the live data, in the tone you picked, aware of what you said steals your day. Cached 5 min.
+- **Brief**: `OLLAMA_MODEL` (default `qwen3.5:9b`) writes one to three sentences from the live data, in the tone you picked, aware of what you said steals your day. The honest template shows instantly; the model's text swaps in when it lands, bounded by `BRIEF_TIMEOUT_MS` (20 s). Past that the template stays with a note saying why. Reasoning models run with thinking off for these short tasks. Model answers are cached 5 min.
 - **Chat**: 💬 or `c`. Streams from `CHAT_MODEL` (default `llama3.2:3b`) with the current dashboard as system context. Local models keep everything on the machine.
 - **OpenRouter**: paste an OpenRouter key in Keys, pick any `openrouter/vendor/model` in the AI section. One key for hosted Claude, Gemini, GPT, Llama, DeepSeek, Qwen. For installs without a GPU (a Pi hosting the server) this is the cheap route: this workload is a few cents a day. The AI section shows a ⚠ whenever a cloud model is selected, because the payload includes calendar titles, email subjects and notifications.
 - **Claude**: paste an Anthropic API key in ⚙ Options → Keys, then pick `claude-opus-5` (or sonnet/haiku) as the brief and/or chat model. Small local models misread numbers now and then; Claude does not. Uses the official SDK with adaptive thinking, low effort, and server-side refusal fallbacks. The wizard asks for the key too.
