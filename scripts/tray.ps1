@@ -13,10 +13,15 @@ function Load-Prefs { if (Test-Path $prefFile) { Get-Content $prefFile -Raw | Co
 function Save-Prefs($p) { New-Item -ItemType Directory -Force (Split-Path $prefFile) | Out-Null; $p | ConvertTo-Json | Set-Content $prefFile }
 $prefs = Load-Prefs
 
-# server
-$node = (Get-Command node -ErrorAction SilentlyContinue).Source
-if (-not $node) { [System.Windows.Forms.MessageBox]::Show("Node.js is not installed. Run scripts\install.ps1 first.", "Good Day Sunshine") | Out-Null; exit 1 }
-$server = Start-Process $node -ArgumentList "server.js" -WorkingDirectory $root -WindowStyle Hidden -PassThru
+# server: the packaged exe if it sits next to us, otherwise node + server.js
+$exe = Join-Path $root "GoodDaySunshine.exe"
+if (Test-Path $exe) {
+  $server = Start-Process $exe -WorkingDirectory $root -WindowStyle Hidden -PassThru
+} else {
+  $node = (Get-Command node -ErrorAction SilentlyContinue).Source
+  if (-not $node) { [System.Windows.Forms.MessageBox]::Show("Node.js is not installed. Run scripts\install.ps1 first.", "Good Day Sunshine") | Out-Null; exit 1 }
+  $server = Start-Process $node -ArgumentList "server.js" -WorkingDirectory $root -WindowStyle Hidden -PassThru
+}
 
 # sun icon drawn in code, no file
 $bmp = New-Object System.Drawing.Bitmap 32, 32

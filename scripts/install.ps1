@@ -14,7 +14,8 @@ if ($Uninstall) {
   exit
 }
 
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+$packaged = Test-Path (Join-Path $root "GoodDaySunshine.exe")
+if (-not $packaged -and -not (Get-Command node -ErrorAction SilentlyContinue)) {
   Write-Host "Node.js not found. Installing via winget..."
   winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements
   $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")

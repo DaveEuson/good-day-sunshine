@@ -2,6 +2,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isSea } from "node:sea";
 import { providers, OPTION_HINTS, KEYS } from "./providers/index.js";
 import { brief, fallback } from "./brief.js";
 import { chat } from "./chat.js";
@@ -10,7 +11,8 @@ import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url));
+// Files live next to the source, or next to the exe when packaged as a single executable (scripts/build-exe.ps1).
+const ROOT = process.env.GDS_ROOT || (isSea() ? path.dirname(process.execPath) : path.dirname(fileURLToPath(import.meta.url)));
 const PUB = path.join(ROOT, "public");
 const USERS = path.join(ROOT, "config", "users");
 const DATA = path.join(ROOT, "data");

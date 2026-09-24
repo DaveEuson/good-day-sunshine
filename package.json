@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "check": "node --test"
+    "check": "node --test",
+    "build:exe": "powershell -ExecutionPolicy Bypass -File scripts/build-exe.ps1",
+    "bundle": "esbuild server.js --bundle --platform=node --format=cjs --target=node22 --outfile=dist/server.cjs --log-level=warning"
   },
   "engines": {
     "node": ">=20"
@@ -13,5 +15,9 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
   }
 }

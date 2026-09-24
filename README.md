@@ -21,6 +21,15 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 
 Installs Node if missing (winget), puts a sun in the tray, starts at login, and opens your page. Tray menu: Open, Options, TV mode, Start at login, Open page when I start, Quit. Uninstall with `-Uninstall`. Nothing else is installed; it is a PowerShell tray around `node server.js`.
 
+## Single-file exe (no Node on the target)
+
+```powershell
+npm install
+npm run build:exe        # → dist\GoodDaySunshine\ and dist\GoodDaySunshine-win-x64.zip
+```
+
+Node's single-executable build: esbuild bundles the server into one CommonJS file, `postject` injects it into a copy of `node.exe`. The exe reads `public\`, `config\`, `data\` and `.env` from its own folder. Unzip anywhere, run `GoodDaySunshine.exe` or `scripts\install.ps1` (which uses the exe when it sees one, no Node download). ~90 MB because it is a whole Node runtime. It is unsigned, so Windows SmartScreen will ask once. esbuild and postject are dev dependencies only; `npm start` from source still needs nothing.
+
 ## First run: the wake-up wizard
 
 An empty install, a profile without `onboarded: true`, `?setup=1`, or "+ New person" in the profile menu opens the wizard: one question at a time, conversational ("Do you manage a Twitch stream?"), details only for what you said yes to, look/quiet hours/sounds/local model at the end. It writes the same profile + keys the options menu does, plants your first seed, and hands you your page. Everything it asked is editable later in ⚙.
@@ -79,6 +88,10 @@ Every widget reports `status: ok | error | setup`. A failed check ships no numbe
 ## Wake-up ramp
 
 Set an alarm time and weekdays in Options (or in the wizard). Ten minutes before, the screen fades up from black: a huge clock, the face fading in, the greeting at the halfway point, a soft chime at the time. **Snooze 9 min** goes back to black and returns fully lit; the page then opens on the short version (three lines: what needs you, what's next, one small thing) with a Full brief button. **I'm up** ends it for the day. Nobody comes for an hour → it stops. `?wake=test` runs the whole ramp in 12 seconds. Quiet hours yield to the ramp.
+
+## I noticed
+
+One observation a week, only from data the page already has, always with a Yes/No offer, never a fact it can't show you ("why?" opens the evidence). Sources today: garden per-day records (a weekday you keep not watering, streak milestones at 7/14/30/60/100, focus blocks finished this week) and GitHub notification counts by weekday (a day they pile up). **Yes please** stores a nudge that appears as a chip under the headline on that weekday (tap the chip to forget it). **No thanks** silences that observation for 30 days. Nothing noticed → no card. Logic in `notice.js`, state in `data/notices/<user>.json`. Needs a few weeks of use before the pattern ones can fire.
 
 ## Just one thing
 
