@@ -18,6 +18,9 @@
       "type": "email"
     },
     {
+      "type": "noticed"
+    },
+    {
       "type": "garden"
     },
     {

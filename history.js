@@ -58,6 +58,10 @@ export function openHistory(file) {
       }
       return stats;
     },
+    // Raw samples of one stat: [{t, v}] over the last `days`.
+    series(key, label, days = 28, now = Date.now()) {
+      return (byKey.get(key) ?? []).filter((r) => label in r.s && now - r.t <= days * DAY).map((r) => ({ t: r.t, v: r.s[label] }));
+    },
     // Upsert one day's counters for a key. dateStr = YYYY-MM-DD.
     recordDaily(key, dateStr, values) {
       const m = daily.get(key) ?? daily.set(key, new Map()).get(key);

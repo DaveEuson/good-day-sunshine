@@ -42,6 +42,7 @@
     if (cal) out.push(`<span class="chip">${cal.stats[0].value} today</span>`);
     const g = ws.find((w) => w.type === "garden")?.garden;
     if (g?.plantView && !g.plantView.wateredToday && !g.plantView.ready) out.push(`<span class="chip">Water the ${esc(g.plantView.name.toLowerCase())}</span>`);
+    for (const n of ws.find((w) => w.type === "noticed")?.todayNudges ?? []) out.push(`<span class="chip nudge" title="tap to forget this nudge" data-forget="${esc(n.id)}">${esc(n.time)} · ${esc(n.text)}</span>`);
     return out.join("");
   }
 
@@ -97,7 +98,9 @@
       </div>
       ${ringHTML(ringNext)}`;
     tickRing();
-    $("#hero-block").onclick = (e) => {
+    $("#hero-block").onclick = async (e) => {
+      const f = e.target.closest("[data-forget]");
+      if (f) { await fetch(`/api/notice/forget?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: f.dataset.forget }) }); f.remove(); toast("Forgotten."); return; }
       const b = e.target.closest("[data-mood]");
       if (!b) return;
       setMood(user, mood === b.dataset.mood ? "" : b.dataset.mood);

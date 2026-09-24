@@ -8,6 +8,7 @@ import { chat } from "./chat.js";
 import { CLAUDE_MODELS, openrouterModels, provider } from "./ai.js";
 import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
+import * as notice from "./notice.js";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.join(ROOT, "public");
@@ -41,6 +42,12 @@ const TTL = +(env.CACHE_TTL_MS || 5 * 60_000);
 
 const history = openHistory(path.join(DATA, "history.jsonl"));
 const gardens = garden.store(path.join(DATA, "garden"));
+const notices = notice.store(path.join(DATA, "notices"));
+
+function noticeCandidates(user) {
+  const g = gardens.load(user);
+  return notice.computeNotices({ garden: g, series: history.series(`${user}:attention`, "Notifications") });
+}
 
 const cache = new Map(); // key → { at, value }
 async function cached(key, fn) {
@@ -61,6 +68,14 @@ function loadUser(name) {
 async function runWidget(w, i, user) {
   const base = { id: i, type: w.type, title: w.title ?? w.type };
   if (w.type === "garden") return { ...base, status: "ok", title: w.title ?? "Garden", icon: "❀", garden: garden.view(gardens.save(user, garden.checkin(gardens.load(user)))) };
+  if (w.type === "noticed") {
+    const st = notices.load(user);
+    const cands = noticeCandidates(user);
+    const n = notice.pick(cands, st);
+    notices.save(user, st);
+    const dow = new Date().getDay();
+    return { ...base, status: "ok", title: w.title ?? "I noticed", icon: "✦", notice: n, nudges: st.nudges, todayNudges: st.nudges.filter((x) => x.day === dow) };
+  }
   const p = providers[w.type];
   if (!p) return { ...base, status: "error", error: `Unknown widget type "${w.type}".` };
   const hkey = `${user}:${w.key ?? w.type}`;
@@ -119,7 +134,7 @@ http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/catalog") {
       const cat = Object.entries(providers).map(([type, p]) => ({ type, title: p.meta.title, icon: p.meta.icon, hint: OPTION_HINTS[type] ?? "{}" }));
-      cat.splice(4, 0, { type: "garden", title: "Garden", icon: "❀", hint: "{}" });
+      cat.splice(4, 0, { type: "garden", title: "Garden", icon: "❀", hint: "{}" }, { type: "noticed", title: "I noticed", icon: "✦", hint: "{}" });
       return json(res, 200, cat);
     }
 
@@ -157,7 +172,7 @@ http.createServer(async (req, res) => {
     if (um && req.method === "PUT") {
       const cfg = await body(req);
       if (typeof cfg.name !== "string" || !Array.isArray(cfg.widgets)) return json(res, 400, { error: "Need name and widgets[]." });
-      const bad = cfg.widgets.find((w) => w.type !== "garden" && !providers[w.type]);
+      const bad = cfg.widgets.find((w) => !["garden", "noticed"].includes(w.type) && !providers[w.type]);
       if (bad) return json(res, 400, { error: `Unknown widget type "${bad.type}".` });
       fs.writeFileSync(path.join(USERS, `${safeName(um[1])}.json`), JSON.stringify(cfg, null, 2) + "\n");
       cache.clear();
@@ -183,6 +198,14 @@ http.createServer(async (req, res) => {
       try { for await (const text of stream) res.write(JSON.stringify({ message: { content: text } }) + "\n"); }
       catch (e) { res.write(JSON.stringify({ message: { content: `\n[${e.message}]` } }) + "\n"); }
       return res.end();
+    }
+
+    const nm = url.pathname.match(/^\/api\/notice\/(yes|no|ok|forget)$/);
+    if (nm && req.method === "POST") {
+      const { id } = await body(req);
+      const st = notice.respond(notices.load(user), nm[1], id, noticeCandidates(user));
+      notices.save(user, st);
+      return json(res, 200, { ok: true, nudges: st.nudges });
     }
 
     const g = url.pathname.match(/^\/api\/garden\/(\w+)$/);

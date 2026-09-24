@@ -57,6 +57,7 @@ const endLink = (i) => (i.url ? "</a>" : "</span>");
 
 function widget(w) {
   if (w.type === "garden") return gardenCard(w);
+  if (w.type === "noticed") return noticedCard(w);
   const urgent = w.attention?.some((a) => a.level === "high");
   const cls = ["card", "widget", w.setup ? "dim" : "", w.error ? "broken" : "", urgent ? "alert" : ""].join(" ");
   let body = "";
@@ -72,6 +73,33 @@ function widget(w) {
   }
   return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
 }
+
+// ---------- I noticed ----------
+function noticedCard(w) {
+  const n = w.notice;
+  if (!n) return "";  // nothing noticed → no card, by design
+  const t = THEMES[document.documentElement.dataset.theme] ?? {};
+  const face = faceURI(data.config.character || "sun", false, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff");
+  const who = CHARACTERS[data.config.character] ?? "Sun";
+  const buttons = n.nudge
+    ? `<div class="row"><button data-n="yes" data-id="${esc(n.id)}">Yes please</button><button class="ghost" data-n="no" data-id="${esc(n.id)}">No thanks</button></div>`
+    : `<div class="row"><button data-n="ok" data-id="${esc(n.id)}">${esc(n.ack ?? "Got it")}</button></div>`;
+  return `<section class="card widget noticed" data-wid="${w.id}" data-type="noticed"><h2><span class="icon">✦</span>${esc(w.title)}<span class="when">this week</span></h2>
+    <div class="observe"><img src="${face}" width="44" height="44" alt=""><p>${esc(n.text)}</p></div>
+    ${n.ask ? `<p class="ask-line">${esc(n.ask)}</p>` : ""}${buttons}
+    <div class="eyebrow foot">noticed by ${esc(who)} · <button class="link" data-why="${esc(n.why)}">why?</button></div></section>`;
+}
+$("#grid").addEventListener("click", async (e) => {
+  const why = e.target.closest("[data-why]");
+  if (why) { toast(why.dataset.why, 6000); return; }
+  const b = e.target.closest("[data-n]");
+  if (!b) return;
+  const r = await fetch(`/api/notice/${b.dataset.n}?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: b.dataset.id }) }).then((r) => r.json());
+  const card = b.closest(".noticed");
+  card.innerHTML = `<h2><span class="icon">✦</span>I noticed</h2><p class="hint">${b.dataset.n === "yes" ? "Done. I’ll nudge you." : b.dataset.n === "no" ? "Okay. I won’t bring it up again for a month." : "Noted."}</p>`;
+  SFX.tap?.();
+  if (r.nudges) { const w = data.widgets.find((x) => x.type === "noticed"); if (w) { w.nudges = r.nudges; w.todayNudges = r.nudges.filter((x) => x.day === new Date().getDay()); renderHero(data, user, () => { renderHero(data, user); loadBrief(); }); } }
+});
 
 // ---------- garden ----------
 function gardenCard(w) {

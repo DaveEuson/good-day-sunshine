@@ -26,15 +26,25 @@ export function fresh() {
 
 const note = (s, msg) => { s.log.unshift(msg); s.log.length = Math.min(s.log.length, 5); };
 
+// Per-day record (what "I noticed" reads): { checkin, water, focus }. 90-day retention.
+function mark(s, now, field, value = true) {
+  s.days ??= {};
+  const d = dayStr(now);
+  s.days[d] = { ...(s.days[d] ?? {}), [field]: field === "focus" ? (s.days[d]?.focus ?? 0) + 1 : value };
+  for (const k of Object.keys(s.days)) if (daysBetween(k, d) > 90) delete s.days[k];
+}
+
 export function checkin(s, now = Date.now()) {
   const today = dayStr(now);
   if (s.lastCheckin !== today) {
     s.streak = s.lastCheckin && daysBetween(s.lastCheckin, today) === 1 ? s.streak + 1 : 1;
     const earned = DAILY + Math.min(s.streak, 20);
     s.tokens += earned; s.lastCheckin = today; s.checksToday = 1; s.lastCheckAt = now;
+    mark(s, now, "checkin");
     note(s, `+${earned} tokens · day ${s.streak} streak`);
   } else if (now - s.lastCheckAt >= EXTRA_GAP && s.checksToday <= MAX_EXTRA) {
     s.tokens += EXTRA; s.checksToday++; s.lastCheckAt = now;
+    mark(s, now, "checkin");
     note(s, `+${EXTRA} tokens for checking back`);
   }
   const p = s.plant;
@@ -52,6 +62,7 @@ export function water(s, now = Date.now()) {
   const today = dayStr(now);
   if (p.lastWater === today) throw new Error("Already watered today.");
   p.lastWater = today; p.wilted = false;
+  mark(s, now, "water");
   p.stage = Math.min(p.stage + 1, SEEDS[p.seed].stages.length - 1);
   if (p.stage === SEEDS[p.seed].stages.length - 1) p.ready = true;
   s.tokens += WATER;
@@ -94,6 +105,7 @@ export function focus(s, now = Date.now()) {
   if (s.focusDay !== today) { s.focusDay = today; s.focusToday = 0; }
   if (s.focusToday >= 4) throw new Error("That's four blocks today. Rest counts too.");
   s.focusToday++; s.tokens += 5;
+  mark(s, now, "focus");
   note(s, `Focus block done · +5`);
   return s;
 }
