@@ -20,15 +20,17 @@
   function answer(ws, next) {
     const att = ws.flatMap((w) => (w.attention ?? []).map((a) => ({ ...a, from: w.title })));
     const high = att.filter((a) => a.level === "high");
+    const broken = ws.filter((w) => w.status === "error");
     let head;
-    if (high.length === 1) head = `${high[0].text.replace(/^Review: /, "A review is waiting: ").replace(/^Assigned: /, "")}.`;
+    if (broken.length) head = `Heads up: ${broken.map((w) => w.title).join(", ")} can’t connect.`;
+    else if (high.length === 1) head = `${high[0].text.replace(/^Review: /, "A review is waiting: ").replace(/^Assigned: /, "")}.`;
     else if (high.length > 1) head = `${high.length} things are waiting on you.`;
     else if (att.length) head = `${att.length} ${att.length === 1 ? "thing needs" : "things need"} a look, nothing urgent.`;
     else head = "Nothing's blocking you today.";
     let tail = "";
     if (next) tail = `${esc(next.title)} at ${new Date(next.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}.`;
     else { const wx = ws.find((w) => w.type === "weather" && w.stats); if (wx) tail = `${esc(wx.stats[0].value)} ${esc(wx.stats[0].label.toLowerCase())}, high ${esc(wx.stats[1].value.split(" / ")[0])}.`; }
-    return { head, tail, high, att };
+    return { head, tail, high, att, broken };
   }
 
   function chips(ws, a) {
@@ -73,7 +75,7 @@
     ringNext = next && new Date(next.start) > Date.now() ? next : null;
     const a = answer(ws, ringNext);
     const t = THEMES[document.documentElement.dataset.theme] ?? {};
-    const face = faceURI(cfg.character || "sun", a.high.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
+    const face = faceURI(cfg.character || "sun", a.high.length > 0 || a.broken.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
     $("#hero-block").innerHTML = `
       <img class="face" src="${face}" alt="" width="92" height="92">
       <div class="hero-main">

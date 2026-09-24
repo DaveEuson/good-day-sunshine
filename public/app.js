@@ -66,7 +66,7 @@ function widget(w) {
     if (w.stats?.length) body += `<div class="stats">${w.stats.map(stat).join("")}</div>`;
     if (w.attention?.length)
       body += `<ul class="items att">${w.attention.map((a) => `<li class="${a.level}">${link(a, "t")}${esc(a.text)}${endLink(a)}${a.level === "high" ? `<button class="mini" data-focus="${esc(a.text)}">Do it now</button>` : ""}</li>`).join("")}</ul>`;
-    else if (w.type === "attention") body += `<p class="hint">Inbox zero. Nothing needs you.</p>`;
+    else if (w.type === "attention") body += `<p class="hint">Nothing waiting on GitHub.</p>`;
     if (w.items?.length)
       body += `<ul class="items">${w.items.map((i) => `<li>${link(i, "t")}${esc(i.text)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}${endLink(i)}<span class="b">${esc(i.badge ?? "")}</span></li>`).join("")}</ul>`;
   }
