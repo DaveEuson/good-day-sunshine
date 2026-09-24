@@ -53,6 +53,7 @@ Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sound
 | `news` | `feeds` [urls], `perFeed`, `max` | nothing. Default: HN front page, BBC World, Ars Technica |
 | `garden` | – | nothing |
 | `ai` | – | nothing. Local AI status: Ollama up/down, loaded models + VRAM, GPU use via `nvidia-smi` if present, which provider answers brief and chat, and whether anything leaves the machine |
+| `credits` | `budget` {anthropic, openai} USD/month | AI credits: Anthropic month-to-date spend (`ANTHROPIC_ADMIN_KEY`, org accounts), OpenAI month-to-date (`OPENAI_ADMIN_KEY`), OpenRouter credits left (`OPENROUTER_API_KEY`, exact with a management key), DeepSeek balance (`DEEPSEEK_API_KEY`). Budgets give "left" and a heads-up under 10%. A provider that fails shows "couldn’t check", never $0 |
 | `github` | `user`, `top`, `window` (days, default 14) | `GITHUB_TOKEN` or `gh` (traffic needs push access) |
 | `youtube` | `channelId` | `YOUTUBE_API_KEY` |
 | `twitch` | `login` | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`; followers need `TWITCH_USER_TOKEN` |

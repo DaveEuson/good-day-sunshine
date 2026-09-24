@@ -39,6 +39,10 @@
       "type": "twitch"
     },
     {
+      "type": "credits",
+      "budget": {}
+    },
+    {
       "type": "ai"
     }
   ],

@@ -257,7 +257,7 @@ async function openSettings() {
 }
 // Per-widget option fields come from the catalog hint (example JSON): key → input, typed by the example value.
 const hintFields = (c) => { try { return Object.entries(JSON.parse(c.hint)); } catch { return []; } };
-const fieldVal = (v) => Array.isArray(v) ? v.join(", ") : v ?? "";
+const fieldVal = (v) => Array.isArray(v) ? v.join(", ") : v && typeof v === "object" ? JSON.stringify(v) : v ?? "";
 function renderWidgetRows(rows) {
   $("#widget-list").innerHTML = rows.map((w, i) => {
     const c = catalog.find((x) => x.type === w.type) ?? { title: w.type, icon: "•", hint: "{}" };
@@ -280,6 +280,7 @@ function readWidgetRows() {
       const raw = inp.value.trim();
       if (!raw) continue;
       const ex = JSON.parse(inp.dataset.ex);
+      if (ex && typeof ex === "object" && !Array.isArray(ex)) { try { opts[inp.dataset.k] = JSON.parse(raw); } catch { throw new Error(`${type} → ${inp.dataset.k} must be JSON like ${JSON.stringify(ex)}`); } continue; }
       opts[inp.dataset.k] = Array.isArray(ex) ? raw.split(",").map((s) => s.trim()).filter(Boolean) : typeof ex === "number" ? Number(raw) : raw;
     }
     return { type, on, ...(title ? { title } : {}), ...opts };
