@@ -73,6 +73,19 @@
     ringNext = next && new Date(next.start) > Date.now() ? next : null;
     const a = answer(ws, ringNext);
     const t = THEMES[document.documentElement.dataset.theme] ?? {};
+    if (wakeState(user).startsWith("snooze:")) {
+      const face0 = faceURI(cfg.character || "sun", false, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff");
+      const wx = ws.find((w) => w.type === "weather" && w.stats);
+      const g = ws.find((w) => w.type === "garden")?.garden;
+      const items = [
+        a.broken.length ? `${a.broken.map((w) => w.title).join(", ")} couldn’t be checked.` : a.high.length ? `${a.high[0].text}` : a.att.length ? `${a.att.length} things waiting, nothing urgent.` : "Nothing needs you.",
+        ringNext ? `${ringNext.title} at ${new Date(ringNext.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}.` : wx ? `${wx.stats[0].value}, ${wx.stats[0].label.toLowerCase()}, high ${wx.stats[1].value.split(" / ")[0]}.` : "Nothing on the calendar.",
+        g?.plantView && !g.plantView.wateredToday ? `Water the ${g.plantView.name.toLowerCase()}.` : "Coffee.",
+      ];
+      $("#hero-block").innerHTML = `<img class="face" src="${face0}" alt="" width="92" height="92"><div class="hero-main"><div class="greeting">${esc(greet(cfg.name, mood))}</div><h1 class="answer"><b>Short version, since you snoozed.</b></h1><ol class="short">${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ol><div class="row"><button class="ghost" id="full-brief">Full brief</button></div></div>`;
+      $("#full-brief").onclick = () => { localStorage.setItem(`gds:wake:${user}:${todayKey()}`, "up"); onMood?.(); };
+      return a;
+    }
     const face = faceURI(cfg.character || "sun", a.high.length > 0 || a.broken.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
     $("#hero-block").innerHTML = `
       <img class="face" src="${face}" alt="" width="92" height="92">

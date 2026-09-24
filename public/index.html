@@ -60,6 +60,7 @@
       <label><input type="checkbox" name="sound"> Sounds</label>
       <label>Quiet hours <input name="quietStart" type="time"> to <input name="quietEnd" type="time"> <span class="hint">screen dims, tap to wake</span></label>
       <label>Small display cycle <input name="cycleSec" type="number" min="3" max="120" style="width:5em"> s</label>
+      <label>Wake-up alarm <input name="alarmTime" type="time"> <span class="days"><label><input type="checkbox" name="alarmDay" value="0">Su</label><label><input type="checkbox" name="alarmDay" value="1">Mo</label><label><input type="checkbox" name="alarmDay" value="2">Tu</label><label><input type="checkbox" name="alarmDay" value="3">We</label><label><input type="checkbox" name="alarmDay" value="4">Th</label><label><input type="checkbox" name="alarmDay" value="5">Fr</label><label><input type="checkbox" name="alarmDay" value="6">Sa</label></span> <span class="hint">screen brightens over 10 min, soft chime, snooze or I’m up · <a href="?wake=test" id="wake-test">test it</a></span></label>
     </div>
     <h3>Widgets <span class="hint">check to show, ▲▼ to order</span></h3>
     <div id="widget-list" class="widget-list"></div>
@@ -81,12 +82,14 @@
 <div id="night" hidden><div id="night-clock"></div><div class="hint">quiet hours · tap to wake</div></div>
 <div id="wizard" class="wizard" hidden></div>
 <div id="focus" class="focus" hidden></div>
+<div id="wake" class="wake" hidden></div>
 <div id="toast" class="toast" hidden></div>
 
 <script src="/themes.js"></script>
 <script src="/face.js"></script>
 <script src="/sfx.js"></script>
 <script src="/hero.js"></script>
+<script src="/wake.js"></script>
 <script src="/wizard.js"></script>
 <script src="/app.js"></script>
 </body>

@@ -221,6 +221,8 @@ async function openSettings() {
   f.sound.checked = !!cfg.sound;
   f.quietStart.value = cfg.quiet?.start ?? ""; f.quietEnd.value = cfg.quiet?.end ?? "";
   f.cycleSec.value = cfg.display?.cycleSec ?? 12;
+  f.alarmTime.value = cfg.alarm?.time ?? "";
+  for (const c of f.querySelectorAll("[name=alarmDay]")) c.checked = (cfg.alarm?.days ?? [1, 2, 3, 4, 5]).includes(+c.value);
   // enabled widgets in config order, then the rest of the catalog disabled
   const rows = [...cfg.widgets.map((w) => ({ ...w, on: true })), ...catalog.filter((c) => !cfg.widgets.some((w) => w.type === c.type)).map((c) => ({ type: c.type, on: false }))];
   renderWidgetRows(rows);
@@ -274,6 +276,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
       sound: f.sound.checked,
       quiet: f.quietStart.value && f.quietEnd.value ? { start: f.quietStart.value, end: f.quietEnd.value } : undefined,
       display: { cycleSec: +f.cycleSec.value || 12 },
+      alarm: f.alarmTime.value ? { time: f.alarmTime.value, days: [...f.querySelectorAll("[name=alarmDay]:checked")].map((c) => +c.value), ramp: 10 } : undefined,
       widgets,
     };
     const r = await fetch(`/api/users/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify(cfg) });
@@ -315,12 +318,14 @@ function inQuiet(q, d = new Date()) {
   return a < b ? now >= a && now < b : now >= a || now < b;
 }
 function tickNight() {
-  const asleep = inQuiet(data?.config?.quiet) && !(wokeAt && Date.now() - wokeAt < WAKE_MS);
+  const waking = data && tickWake(data.config, user);
+  const asleep = !waking && inQuiet(data?.config?.quiet) && !(wokeAt && Date.now() - wokeAt < WAKE_MS);
   $("#night").hidden = !asleep;
   if (asleep) $("#night-clock").textContent = new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 $("#night").onclick = () => { wokeAt = Date.now(); tickNight(); };
-setInterval(tickNight, 15_000);
+setInterval(tickNight, 5_000);
+window.onWake = () => { renderHero(data, user, () => { renderHero(data, user); loadBrief(); }); loadBrief(); };
 
 // ---------- load ----------
 let lastHigh = null;

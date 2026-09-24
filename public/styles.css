@@ -320,3 +320,19 @@ body.tv .ask, body.small .ask { display: none; }
 .brief.pending p { color: var(--muted); }
 .brief[data-note]:not([data-note=""])::after { content: attr(data-note); position: absolute; right: 16px; top: -8px; padding: 0 6px; background: var(--card); font-family: ui-monospace, Consolas, monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
 .brief.pending::after { animation: gds-pulse 1.4s infinite; }
+
+/* wake-up ramp */
+.wake { position: fixed; inset: 0; z-index: 110; --veil: .93; --lit: 0; background: var(--page, var(--bg)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: color-mix(in srgb, #fff calc(var(--veil) * 100%), var(--text)); }
+.wake::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,var(--veil)); transition: background .9s linear; pointer-events: none; }
+.wake > * { position: relative; }
+.wake-face { opacity: var(--lit); transition: opacity .9s linear; }
+.wake-clock { font-size: clamp(64px, 12vw, 130px); font-weight: 200; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.wake-greet { font-size: 22px; min-height: 28px; opacity: calc(var(--lit) * 1.2); transition: opacity .9s linear; }
+.wake-actions { display: flex; gap: 10px; margin-top: 14px; opacity: calc(.35 + var(--lit) * .65); }
+.wake-actions button { border: 0; border-radius: 12px; padding: 12px 20px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--on-accent); min-height: 44px; }
+.wake-actions .ghost { background: rgba(255,255,255,.12); color: inherit; border: 1px solid currentColor; font-weight: 500; }
+.wake.ringing .wake-clock { animation: gds-pulse 2.4s infinite; }
+.short { margin: 12px 0 10px; padding-left: 22px; font-size: 18px; line-height: 1.5; }
+.short li { margin: 2px 0; }
+.days { display: inline-flex; gap: 4px; }
+.days label { font-size: 11px; display: inline-flex; flex-direction: column; align-items: center; gap: 0; }

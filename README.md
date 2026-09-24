@@ -76,6 +76,10 @@ Under the headline: one input plus quick chips (What first? · Summarize the new
 
 Every widget reports `status: ok | error | setup`. A failed check ships no numbers, writes no history, keeps its card in the grid with the error and a Fix keys button, and is named in the headline ("Heads up: Inbox can’t connect.") and the brief. The page never claims all clear while a source is broken.
 
+## Wake-up ramp
+
+Set an alarm time and weekdays in Options (or in the wizard). Ten minutes before, the screen fades up from black: a huge clock, the face fading in, the greeting at the halfway point, a soft chime at the time. **Snooze 9 min** goes back to black and returns fully lit; the page then opens on the short version (three lines: what needs you, what's next, one small thing) with a Full brief button. **I'm up** ends it for the day. Nobody comes for an hour → it stops. `?wake=test` runs the whole ramp in 12 seconds. Quiet hours yield to the ramp.
+
 ## Just one thing
 
 Press `j`, the header button, or "Do it now" on an urgent item. Full-screen 25-minute ring, Pause/Done, the task split into four small steps by your chat model (plain default if the model is slow), character keeping you company. Done it → +5 garden tokens, max four blocks a day.
