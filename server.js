@@ -60,21 +60,23 @@ function loadUser(name) {
 
 async function runWidget(w, i, user) {
   const base = { id: i, type: w.type, title: w.title ?? w.type };
-  if (w.type === "garden") return { ...base, title: w.title ?? "Garden", icon: "❀", garden: garden.view(gardens.save(user, garden.checkin(gardens.load(user)))) };
+  if (w.type === "garden") return { ...base, status: "ok", title: w.title ?? "Garden", icon: "❀", garden: garden.view(gardens.save(user, garden.checkin(gardens.load(user)))) };
   const p = providers[w.type];
-  if (!p) return { ...base, error: `Unknown widget type "${w.type}".` };
+  if (!p) return { ...base, status: "error", error: `Unknown widget type "${w.type}".` };
   const hkey = `${user}:${w.key ?? w.type}`;
   try {
     const data = await cached(`${user}:${JSON.stringify(w)}`, async () => {
       const d = await p.fetchData(w, env, { history });
-      if (d.stats) history.record(hkey, d.stats);
+      if (d.stats && !d.error && !d.setup) history.record(hkey, d.stats);
       return d;
     });
     const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data };
-    if (out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);
+    out.status = data.setup ? "setup" : data.error ? "error" : "ok";
+    if (out.status === "ok" && out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);
+    else { delete out.stats; delete out.items; delete out.attention; } // never ship numbers from a failed check
     return out;
   } catch (e) {
-    return { ...base, icon: p.meta.icon, error: e.message };
+    return { ...base, status: "error", icon: p.meta.icon, error: e.message };
   }
 }
 

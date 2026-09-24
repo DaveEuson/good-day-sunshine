@@ -12,11 +12,12 @@ export async function fetchData(cfg, env) {
   const tok = token(env);
   if (!tok) return { setup: "Set GitHub token in ⚙ Options → Keys, or run gh auth login." };
 
+  // Any failed source is an error for the whole card: a swallowed failure would read as "nothing needs you".
   const [notifs, reviews, assigned] = await Promise.all([
-    gh("/notifications?per_page=20", tok).catch(() => []),
-    gh("/search/issues?q=is:open+is:pr+review-requested:@me&per_page=10", tok).catch(() => ({ items: [] })),
-    gh("/search/issues?q=is:open+assignee:@me&per_page=10", tok).catch(() => ({ items: [] })),
-  ]);
+    gh("/notifications?per_page=20", tok),
+    gh("/search/issues?q=is:open+is:pr+review-requested:@me&per_page=10", tok),
+    gh("/search/issues?q=is:open+assignee:@me&per_page=10", tok),
+  ]).catch((e) => { throw new Error(`GitHub check failed (${e.message})`); });
 
   const attention = [
     ...reviews.items.map((p) => ({ text: `Review: ${p.title}`, url: p.html_url, level: "high" })),
@@ -26,7 +27,7 @@ export async function fetchData(cfg, env) {
 
   return {
     stats: [
-      { label: "Unread", value: notifs.length },
+      { label: "Notifications", value: notifs.length },
       { label: "Reviews", value: reviews.total_count ?? reviews.items.length },
       { label: "Assigned", value: assigned.total_count ?? assigned.items.length },
     ],
