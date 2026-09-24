@@ -297,3 +297,11 @@ body.small #focus-toggle { display: none; }
 .warn { margin: 0; font-size: 14px; color: var(--text); }
 .warn b { color: var(--alert); }
 .setup-strip { margin: -6px 0 18px; }
+
+/* items: meta line always visible, title is what truncates */
+.items li .ti { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.items li .ti .t { flex: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.items li .ti .sub { display: block; }
+.widget[data-type="news"] .items li .ti .t { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* wide cards: GitHub carries four stats + a list, give it two columns when the grid has room */
+@media (min-width: 900px) { .grid > .widget[data-type="github"], .grid > .widget[data-type="news"] { grid-column: span 2; } }

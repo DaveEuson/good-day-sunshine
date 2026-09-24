@@ -42,7 +42,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const fmt = (v) => (typeof v === "number" ? v.toLocaleString() : esc(v));
 
 function spark(series) {
-  if (!series || series.length < 2) return "";
+  if (!series || series.filter((v) => v != null).length < 3) return "";
   const w = 64, h = 18, min = Math.min(...series), max = Math.max(...series), span = max - min || 1;
   const pts = series.map((v, i) => `${(i / (series.length - 1)) * w},${h - ((v - min) / span) * (h - 2) - 1}`).join(" ");
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5"/></svg>`;
@@ -68,7 +68,7 @@ function widget(w) {
       body += `<ul class="items att">${w.attention.map((a) => `<li class="${a.level}">${link(a, "t")}${esc(a.text)}${endLink(a)}${a.level === "high" ? `<button class="mini" data-focus="${esc(a.text)}">Do it now</button>` : ""}</li>`).join("")}</ul>`;
     else if (w.type === "attention") body += `<p class="hint">Nothing waiting on GitHub.</p>`;
     if (w.items?.length)
-      body += `<ul class="items">${w.items.map((i) => `<li>${link(i, "t")}${esc(i.text)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}${endLink(i)}<span class="b">${esc(i.badge ?? "")}</span></li>`).join("")}</ul>`;
+      body += `<ul class="items">${w.items.map((i) => `<li><span class="ti">${link(i, "t")}${esc(i.text)}${endLink(i)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}</span>${i.badge ? `<span class="b">${esc(i.badge)}</span>` : ""}</li>`).join("")}</ul>`;
   }
   return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
 }
