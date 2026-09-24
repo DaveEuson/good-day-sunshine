@@ -72,8 +72,8 @@ async function runWidget(w, i, user) {
     });
     const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data };
     out.status = data.setup ? "setup" : data.error ? "error" : "ok";
-    if (out.status === "ok" && out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);
-    else { delete out.stats; delete out.items; delete out.attention; } // never ship numbers from a failed check
+    if (out.status !== "ok") { delete out.stats; delete out.items; delete out.attention; } // never ship numbers from a failed check
+    else if (out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);
     return out;
   } catch (e) {
     return { ...base, status: "error", icon: p.meta.icon, error: e.message };
