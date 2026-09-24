@@ -291,3 +291,9 @@ body.small #focus-toggle { display: none; }
 @keyframes gds-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes gds-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* error state: visible, in the grid */
+.card.widget.broken { border-color: var(--alert); }
+.warn { margin: 0; font-size: 14px; color: var(--text); }
+.warn b { color: var(--alert); }
+.setup-strip { margin: -6px 0 18px; }

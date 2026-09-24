@@ -58,10 +58,10 @@ const endLink = (i) => (i.url ? "</a>" : "</span>");
 function widget(w) {
   if (w.type === "garden") return gardenCard(w);
   const urgent = w.attention?.some((a) => a.level === "high");
-  const cls = ["card", "widget", w.setup || w.error ? "dim" : "", urgent ? "alert" : ""].join(" ");
+  const cls = ["card", "widget", w.setup ? "dim" : "", w.error ? "broken" : "", urgent ? "alert" : ""].join(" ");
   let body = "";
   if (w.setup) body = `<p class="hint">${esc(w.setup)}</p>`;
-  else if (w.error) body = `<p class="err">${esc(w.error)}</p>`;
+  else if (w.error) body = `<p class="warn"><b>Couldn’t check.</b> ${esc(w.error)}</p><div class="row"><button class="mini" data-open="options">Fix keys</button></div>`;
   else {
     if (w.stats?.length) body += `<div class="stats">${w.stats.map(stat).join("")}</div>`;
     if (w.attention?.length)
@@ -331,10 +331,10 @@ async function load(refresh = false) {
   renderHero(data, user, () => { renderHero(data, user); loadBrief(); });
   $("#chat-model").textContent = data.chatModel;
   const mood = getMood(user);
-  const ready = data.widgets.filter((w) => !w.setup && !w.error && !(mood === "rough" && w.type === "news")), pending = data.widgets.filter((w) => w.setup), broken = data.widgets.filter((w) => w.error);
+  const ready = data.widgets.filter((w) => w.status !== "setup" && !(mood === "rough" && w.type === "news")), pending = data.widgets.filter((w) => w.status === "setup"), broken = data.widgets.filter((w) => w.status === "error");
   $("#grid").innerHTML = ready.map(widget).join("");
   $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
-  $("#setup-strip").innerHTML = [broken.length ? `<span class="err">${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
+  $("#setup-strip").innerHTML = [broken.length ? `<span class="err">⚠ ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
   $("#setup-go")?.addEventListener("click", openSettings);
   $("#status").textContent = `Updated ${new Date().toLocaleTimeString()}`;
   $("#mode-hint").textContent = MODE ? `· ${MODE} mode` : "";
@@ -364,7 +364,7 @@ function pickFocusTask() {
   if (t) startFocus(t, user, { onDone: () => load() });
 }
 $("#focus-toggle").onclick = pickFocusTask;
-$("#grid").addEventListener("click", (e) => { const b = e.target.closest("[data-focus]"); if (b) startFocus(b.dataset.focus.replace(/^(Review|Assigned): /, ""), user, { onDone: () => load() }); });
+$("#grid").addEventListener("click", (e) => { if (e.target.closest("[data-open=options]")) openSettings(); const b = e.target.closest("[data-focus]"); if (b) startFocus(b.dataset.focus.replace(/^(Review|Assigned): /, ""), user, { onDone: () => load() }); });
 document.addEventListener("keydown", (e) => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
   if (e.key === "r") load(true);
