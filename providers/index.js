@@ -6,11 +6,12 @@ import * as weather from "./weather.js";
 import * as calendar from "./calendar.js";
 import * as email from "./email.js";
 import * as news from "./news.js";
+import * as ai from "./aistatus.js";
 
 // Add a provider: export { meta, fetchData(cfg, env) } and register here.
 // fetchData returns { title?, stats?: [{label,value,sub?}], items?: [{text,url?,badge?,sub?}],
 //                     attention?: [{text,url,level:"high"|"med"|"low"}], setup?: string, error?: string }
-export const providers = { github, youtube, twitch, attention, weather, calendar, email, news };
+export const providers = { github, youtube, twitch, attention, weather, calendar, email, news, ai };
 
 // Secrets the options menu can set. Stored in .env, never sent back to the browser.
 export const KEYS = [
@@ -39,4 +40,5 @@ export const OPTION_HINTS = {
   email: '{"max":6}',
   news: '{"feeds":["https://hnrss.org/frontpage"],"max":10}',
   garden: "{}",
+  ai: "{}",
 };

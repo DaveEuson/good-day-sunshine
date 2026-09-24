@@ -43,6 +43,7 @@ Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sound
 | `email` | `user`, `max` | `GMAIL_USER` + `GMAIL_APP_PASSWORD` (Google → Security → 2-Step → App passwords) |
 | `news` | `feeds` [urls], `perFeed`, `max` | nothing. Default: HN front page, BBC World, Ars Technica |
 | `garden` | – | nothing |
+| `ai` | – | nothing. Local AI status: Ollama up/down, loaded models + VRAM, GPU use via `nvidia-smi` if present, which provider answers brief and chat, and whether anything leaves the machine |
 | `github` | `user`, `top`, `window` (days, default 14) | `GITHUB_TOKEN` or `gh` (traffic needs push access) |
 | `youtube` | `channelId` | `YOUTUBE_API_KEY` |
 | `twitch` | `login` | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`; followers need `TWITCH_USER_TOKEN` |
@@ -66,6 +67,14 @@ Register it in `providers/index.js` (and add an `OPTION_HINTS` entry so the opti
 ## The hero
 
 Top of the page answers one question: what matters this morning. A character face (Sun, Cat, Robot, Cloud, Coffee; generated SVG, recoloured by theme, worried when something is urgent, outfits unlock with streaks), a greeting, an **answer headline** built only from real data ("A review is waiting: … Standup at 09:00." or "Nothing's blocking you today."), chips (urgent, weather, unread, today's events, water the plant), and a **mood row**. Mood shapes the greeting and the brief (rough = one gentle sentence, news hidden), never the facts. With a calendar connected, a **countdown ring** drains over the last hour to your next event.
+
+## Ask bar
+
+Under the headline: one input plus quick chips (What first? · Summarize the news · Draft my standup · What changed?). Anything typed opens the chat drawer with the answer streaming from your chat model.
+
+## Honest status
+
+Every widget reports `status: ok | error | setup`. A failed check ships no numbers, writes no history, keeps its card in the grid with the error and a Fix keys button, and is named in the headline ("Heads up: Inbox can’t connect.") and the brief. The page never claims all clear while a source is broken.
 
 ## Just one thing
 

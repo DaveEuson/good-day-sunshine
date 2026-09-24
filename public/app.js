@@ -145,6 +145,15 @@ async function loadBrief() {
 const chatLog = [];
 $("#chat-toggle").onclick = () => { $("#chat").hidden = !$("#chat").hidden; if (!$("#chat").hidden) $("#chat-input").focus(); };
 $("#chat-clear").onclick = () => { chatLog.length = 0; $("#chat-log").innerHTML = ""; };
+async function ask(q) {
+  q = q.trim();
+  if (!q) return;
+  $("#chat").hidden = false;
+  $("#chat-input").value = q;
+  $("#chat-form").requestSubmit();
+}
+$("#ask").onsubmit = (e) => { e.preventDefault(); ask($("#ask-in").value); $("#ask-in").value = ""; };
+$("#ask").addEventListener("click", (e) => { const b = e.target.closest("[data-ask]"); if (b) ask(b.dataset.ask); });
 $("#chat-form").onsubmit = async (e) => {
   e.preventDefault();
   const q = $("#chat-input").value.trim();
