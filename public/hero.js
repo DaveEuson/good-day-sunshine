@@ -83,7 +83,7 @@
         g?.plantView && !g.plantView.wateredToday ? `Water the ${g.plantView.name.toLowerCase()}.` : "Coffee.",
       ];
       $("#hero-block").innerHTML = `<img class="face" src="${face0}" alt="" width="92" height="92"><div class="hero-main"><div class="greeting">${esc(greet(cfg.name, mood))}</div><h1 class="answer"><b>Short version, since you snoozed.</b></h1><ol class="short">${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ol><div class="row"><button class="ghost" id="full-brief">Full brief</button></div></div>`;
-      $("#full-brief").onclick = () => { localStorage.setItem(`gds:wake:${user}:${todayKey()}`, "up"); onMood?.(); };
+      $("#full-brief").onclick = () => { wakeDone(user); onMood?.(); };
       return a;
     }
     const face = faceURI(cfg.character || "sun", a.high.length > 0 || a.broken.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());

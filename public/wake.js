@@ -10,8 +10,9 @@
   const TEST = new URLSearchParams(location.search).get("wake") === "test";
   let testAlarm = null, chimeAt = 0, lastState = "";
 
-  window.wakeState = (u) => localStorage.getItem(key(u)) || "";
-  const setState = (u, v) => localStorage.setItem(key(u), v);
+  window.wakeState = (u) => (TEST ? lastState : localStorage.getItem(key(u)) || "");
+  const setState = (u, v) => { localStorage.setItem(key(u), v); lastState = v; };
+  window.wakeDone = (u) => { setState(u, "up"); $("#wake").hidden = true; };
 
   function alarmFor(cfg) {
     if (TEST) return (testAlarm ??= { at: Date.now() + 12_000, ramp: 12_000 });
@@ -28,7 +29,7 @@
   window.tickWake = function tickWake(cfg, user) {
     const $w = $("#wake");
     const al = alarmFor(cfg);
-    const st = TEST ? lastState : wakeState(user);
+    const st = wakeState(user);
     if (!al || st === "up") { $w.hidden = true; return false; }
     const now = Date.now();
     let progress;
@@ -58,8 +59,8 @@
         <div class="wake-actions"><button class="ghost" id="wake-snooze">Snooze 9 min</button><button id="wake-up">I’m up</button></div>`;
       $w.dataset.ready = "1";
       $w.hidden = false;
-      $("#wake-snooze").onclick = () => { setState(user, `snooze:${Date.now() + (TEST ? 5_000 : 9 * 60_000)}`); lastState = `snooze:${Date.now() + 5_000}`; $w.hidden = true; toast("Snoozed. Back in nine minutes with the short version."); SFX.tap?.(); window.onWake?.(); };
-      $("#wake-up").onclick = () => { setState(user, "up"); lastState = "up"; $w.hidden = true; SFX.plant?.(); window.onWake?.(); };
+      $("#wake-snooze").onclick = () => { setState(user, `snooze:${Date.now() + (TEST ? 8_000 : 9 * 60_000)}`); $w.hidden = true; toast("Snoozed. Back in nine minutes with the short version."); SFX.tap?.(); window.onWake?.(); };
+      $("#wake-up").onclick = () => { wakeDone(user); SFX.plant?.(); window.onWake?.(); };
     }
     $w.style.setProperty("--veil", String(0.93 * (1 - p)));
     $w.style.setProperty("--lit", String(p));
