@@ -85,6 +85,35 @@ export async function aiText(opts, env) {
   return out.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
+// Installed Ollama models, classified for writing a brief / chatting, using what Ollama reports (/api/show capabilities).
+// Not fit: code-completion models ("insert"), embedding models, OCR / image-description models, and anything under 1B params.
+const paramsB = (s = "") => { const m = String(s).match(/([\d.]+)\s*([BM])/i); return m ? +m[1] / (m[2].toUpperCase() === "M" ? 1000 : 1) : null; };
+export function classifyModel({ name, family = "", params, caps = [] }) {
+  const b = paramsB(params);
+  if (caps.includes("embedding") && !caps.includes("completion")) return "embedding model";
+  if (caps.includes("insert")) return "code completion model";
+  if (/ocr/i.test(name) || /ocr/i.test(family)) return "OCR model";
+  if (/llava/i.test(name)) return "image description model";
+  if (b != null && b < 1) return `too small (${params})`;
+  return null;
+}
+let ollamaCache = { at: 0, base: "", list: [] };
+export async function ollamaModels(base) {
+  if (ollamaCache.base === base && Date.now() - ollamaCache.at < 600_000) return ollamaCache.list;
+  let tags = [];
+  try { tags = (await (await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) })).json()).models ?? []; } catch { return []; }
+  const list = await Promise.all(tags.map(async (m) => {
+    let caps = [];
+    try { caps = (await (await fetch(`${base}/api/show`, { method: "POST", body: JSON.stringify({ model: m.name }), signal: AbortSignal.timeout(3000) })).json()).capabilities ?? []; } catch {}
+    const info = { name: m.name, size: m.size, params: m.details?.parameter_size ?? "", family: m.details?.family ?? "", caps };
+    const why = classifyModel(info);
+    return { ...info, fit: !why, why };
+  }));
+  list.sort((a, b) => (paramsB(b.params) ?? 0) - (paramsB(a.params) ?? 0));
+  ollamaCache = { at: Date.now(), base, list };
+  return list;
+}
+
 // Curated OpenRouter list for the picker (vendors people recognise), cached an hour. Any other id works if typed into .env.
 const OR_VENDORS = ["anthropic", "google", "openai", "meta-llama", "mistralai", "deepseek", "qwen", "x-ai"];
 let orCache = { at: 0, models: [] };

@@ -273,17 +273,18 @@ async function openSettings(tab = "you") {
   // AI
   if (models) {
     f.OLLAMA_URL.value = models.url;
-    const opts = (cur) => {
-      const groups = [["Local (stays on this machine)", models.models.filter((m) => !/^(claude-|openrouter\/)/.test(m))], ["Claude (needs Anthropic key)", models.models.filter((m) => /^claude-/.test(m))], ["OpenRouter (needs OpenRouter key)", models.models.filter((m) => /^openrouter\//.test(m))]];
-      const known = new Set(models.models);
-      const extra = cur && !known.has(cur) ? `<option selected>${esc(cur)}</option>` : "";
-      return extra + groups.filter(([, l]) => l.length).map(([g, l]) => `<optgroup label="${esc(g)}">${l.map((m) => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("")}</optgroup>`).join("");
-    };
-    $("#brief-model").innerHTML = opts(models.brief);
-    $("#chat-model-sel").innerHTML = opts(models.chat);
+    aiModels = models;
+    f.modelsAll.checked = false;
+    $("#brief-model").innerHTML = ""; $("#chat-model-sel").innerHTML = "";   // start from the saved choice, not a cancelled edit
+    renderModelPickers();
+    const hidden = (models.installed ?? []).filter((m) => !m.fit);
     const cloud = models.cloud?.length ? `Sends dashboard data to ${[...new Set(models.cloud)].join(" and ")}.` : "Nothing leaves this machine.";
-    $("#ai-status").innerHTML = `<b>${models.local ? `${models.local} local models` : "Ollama isn’t reachable"}</b>${models.claude ? " · Claude ready" : ""}${models.openrouter ? " · OpenRouter ready" : ""}<br>${esc(cloud)}`;
+    $("#ai-status").innerHTML = `<b>${models.installed?.length ? `${models.local} of ${models.installed.length} installed models can write your brief` : "Ollama isn’t reachable"}</b>${models.claude ? " · Claude ready" : ""}${models.openrouter ? " · OpenRouter ready" : ""}<br>${esc(cloud)}`;
     $("#ai-status").classList.toggle("cloud", !!models.cloud?.length);
+    const byWhy = {};
+    for (const m of hidden) (byWhy[m.why.replace(/ \(.*\)$/, "")] ??= []).push(m.name);
+    $("#models-hidden").innerHTML = hidden.length ? `${hidden.length} hidden because they can’t write a brief:<br>${Object.entries(byWhy).map(([why, names]) => `<b>${esc(why)}</b>: ${esc(names.join(", "))}`).join("<br>")}` : "";
+    $("#models-all-row").hidden = !hidden.length;
   }
 
   // Keys
@@ -296,6 +297,30 @@ async function openSettings(tab = "you") {
   showTab(tab);
   if (!$("#settings").open) $("#settings").showModal();
 }
+
+// ---- AI: model pickers. Local = installed models that can write (largest first); "show all" adds the rest.
+let aiModels = null;
+function renderModelPickers() {
+  const m = aiModels, f = $("#settings-form");
+  if (!m) return;
+  const all = f.modelsAll.checked;
+  const local = (m.installed ?? []).filter((x) => all || x.fit);
+  const opt = (name, label, cur) => `<option value="${esc(name)}" ${name === cur ? "selected" : ""}>${esc(label)}</option>`;
+  const build = (cur) => {
+    const groups = [
+      ["On this machine", local.map((x) => [x.name, `${x.name}  ·  ${x.params}${x.fit ? "" : `  ·  ${x.why}`}`])],
+      ["Claude (needs Anthropic key)", m.models.filter((x) => /^claude-/.test(x)).map((x) => [x, x])],
+      ["OpenRouter (needs OpenRouter key)", m.models.filter((x) => /^openrouter\//.test(x)).map((x) => [x, x.replace(/^openrouter\//, "")])],
+    ].filter(([, l]) => l.length);
+    const shown = new Set(groups.flatMap(([, l]) => l.map(([n]) => n)));
+    const extra = cur && !shown.has(cur) ? opt(cur, `${cur}  ·  current`, cur) : "";   // never drop what's in use
+    return extra + groups.map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(([n, lab]) => opt(n, lab, cur)).join("")}</optgroup>`).join("");
+  };
+  const keep = (sel, fallback) => sel.value || fallback;
+  $("#brief-model").innerHTML = build(keep($("#brief-model"), m.brief));
+  $("#chat-model-sel").innerHTML = build(keep($("#chat-model-sel"), m.chat));
+}
+$("#settings-form").modelsAll.addEventListener("change", renderModelPickers);
 
 // ---- You: character picker with the real faces
 function renderCharacters(cur) {

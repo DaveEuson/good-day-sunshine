@@ -106,6 +106,9 @@
         <p class="ai-state" id="ai-status"></p>
         <div class="set-row"><label for="brief-model">Brief model</label><select id="brief-model" name="OLLAMA_MODEL"></select></div>
         <div class="set-row"><label for="chat-model-sel">Chat model</label><select id="chat-model-sel" name="CHAT_MODEL"></select></div>
+        <div class="set-row" id="models-all-row"><span class="lbl"></span>
+          <div><label class="check"><input type="checkbox" name="modelsAll"> show all installed models</label><p class="help" id="models-hidden"></p></div>
+        </div>
         <div class="set-row"><label for="set-ollama">Ollama address</label><input id="set-ollama" name="OLLAMA_URL" placeholder="http://localhost:11434"></div>
         <p class="help">Local models keep everything on this machine. claude-* and openrouter/* models need a key on the Keys tab and send your dashboard data to that service.</p>
       </section>

@@ -6,7 +6,7 @@ import { isSea } from "node:sea";
 import { providers, OPTION_FIELDS, KEYS } from "./providers/index.js";
 import { brief, fallback } from "./brief.js";
 import { chat } from "./chat.js";
-import { CLAUDE_MODELS, openrouterModels, provider } from "./ai.js";
+import { CLAUDE_MODELS, openrouterModels, ollamaModels, provider } from "./ai.js";
 import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
@@ -162,12 +162,12 @@ http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/models") {
       const base = env.OLLAMA_URL || "http://localhost:11434";
-      let local = [];
-      try { local = (await (await fetch(`${base}/api/tags`, { signal: AbortSignal.timeout(3000) })).json()).models.map((m) => m.name); } catch {}
+      const installed = await ollamaModels(base);   // [{ name, size, params, caps, fit, why }]
+      const local = installed.filter((m) => m.fit).map((m) => m.name);
       const claude = env.ANTHROPIC_API_KEY ? CLAUDE_MODELS : [];
       const or = await openrouterModels(env);
       const brief = env.OLLAMA_MODEL || (local.length ? "qwen3.5:9b" : ""), chat = env.CHAT_MODEL || (local.length ? "llama3.2:3b" : "");
-      return json(res, 200, { ok: local.length + claude.length + or.length > 0, url: base, local: local.length, claude: claude.length > 0, openrouter: or.length > 0, models: [...claude, ...or, ...local], brief, chat, cloud: [provider(brief), provider(chat)].filter((p) => p !== "ollama") });
+      return json(res, 200, { ok: local.length + claude.length + or.length > 0, url: base, local: local.length, installed, claude: claude.length > 0, openrouter: or.length > 0, models: [...claude, ...or, ...local], brief, chat, cloud: [provider(brief), provider(chat)].filter((p) => p !== "ollama") });
     }
 
     const um = url.pathname.match(/^\/api\/users\/([a-z0-9_-]+)$/i);
