@@ -436,3 +436,18 @@ body.small .grid > .widget.active { min-height: 200px; }
 .set-body { overflow-x: hidden; }
 .set-row > * { min-width: 0; }
 .char-pick { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+
+/* keys tab: sections by what needs you */
+.key-sec { margin: 6px 0 -4px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.key-sec.fix { color: var(--alert); }
+.key-group.fix { border-color: var(--alert); background: color-mix(in srgb, var(--alert) 4%, transparent); }
+.key-group.need { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.key-note { margin: 0; font-size: 14px; }
+.key-group.fix .key-note { color: var(--alert); font-weight: 600; }
+.key.compact .key-top { margin-bottom: 0; }
+.key-actions { margin-left: auto; display: inline-flex; gap: 12px; align-items: center; }
+.key-top .link:first-of-type { margin-left: 0; }
+.key-off { border: 1px dashed var(--border); border-radius: 12px; padding: 10px 14px; }
+.key-off summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.key-off[open] summary { margin-bottom: 12px; }
+.key-off .key-group { margin-top: 12px; }

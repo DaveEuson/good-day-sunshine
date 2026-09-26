@@ -15,24 +15,25 @@ import * as credits from "./credits.js";
 export const providers = { github, youtube, twitch, attention, weather, calendar, email, news, ai, credits };
 
 // Secrets the options menu can set. Stored in .env, never sent back to the browser (except `secret: false` ones).
-// `group` orders them in the Keys tab.
+// `group` = heading in the Keys tab; `for` = widget types that use the key ("@ai" = AI model providers). The tab
+// orders groups by what needs you: failing widgets first, then missing keys, working ones, AI, and keys for widgets that are off.
 export const KEYS = [
-  { group: "AI models", key: "ANTHROPIC_API_KEY", label: "Anthropic API key", help: "Lets Claude write the brief and answer chat. Then pick a claude-* model on the AI tab.", url: "https://console.anthropic.com/settings/keys" },
-  { group: "AI models", key: "OPENROUTER_API_KEY", label: "OpenRouter API key", help: "One key, any hosted model. Then pick an openrouter/… model on the AI tab.", url: "https://openrouter.ai/keys" },
-  { group: "AI credits card", key: "ANTHROPIC_ADMIN_KEY", label: "Anthropic admin key", help: "Month-to-date spend. sk-ant-admin…, organization accounts only.", url: "https://platform.claude.com/settings/admin-keys" },
-  { group: "AI credits card", key: "OPENAI_ADMIN_KEY", label: "OpenAI admin key", help: "Month-to-date spend. An admin key, not a project key.", url: "https://platform.openai.com/settings/organization/admin-keys" },
-  { group: "AI credits card", key: "OPENROUTER_MANAGEMENT_KEY", label: "OpenRouter management key", help: "Optional. Exact credits left; without it the card uses your normal key’s limit.", url: "https://openrouter.ai/settings/keys" },
-  { group: "AI credits card", key: "DEEPSEEK_API_KEY", label: "DeepSeek API key", help: "Account balance.", url: "https://platform.deepseek.com/api_keys" },
-  { group: "Calendar & mail", key: "CALENDAR_ICS", label: "Calendar iCal URL", help: "Google Calendar → Settings → your calendar → Secret address in iCal format. Comma-separate several." },
-  { group: "Calendar & mail", key: "GMAIL_USER", label: "Gmail address", help: "", secret: false },
-  { group: "Calendar & mail", key: "GMAIL_APP_PASSWORD", label: "Gmail app password", help: "Google Account → Security → 2-Step Verification → App passwords.", url: "https://myaccount.google.com/apppasswords" },
-  { group: "GitHub", key: "GITHUB_TOKEN", label: "GitHub token", help: "Optional if `gh auth login` is done. Scopes: repo, notifications.", url: "https://github.com/settings/tokens" },
-  { group: "YouTube & Twitch", key: "YOUTUBE_API_KEY", label: "YouTube API key", help: "Google Cloud → YouTube Data API v3 → Credentials.", url: "https://console.cloud.google.com/apis/credentials" },
-  { group: "YouTube & Twitch", key: "YOUTUBE_CHANNEL_ID", label: "YouTube channel id", help: "Starts with UC. YouTube Studio → Settings → Channel → Advanced.", secret: false },
-  { group: "YouTube & Twitch", key: "TWITCH_LOGIN", label: "Twitch channel", help: "Your channel name.", secret: false },
-  { group: "YouTube & Twitch", key: "TWITCH_CLIENT_ID", label: "Twitch client id", help: "dev.twitch.tv → Console → Register application.", url: "https://dev.twitch.tv/console/apps", secret: false },
-  { group: "YouTube & Twitch", key: "TWITCH_CLIENT_SECRET", label: "Twitch client secret", help: "Same application → New secret." },
-  { group: "YouTube & Twitch", key: "TWITCH_USER_TOKEN", label: "Twitch user token", help: "Optional, for follower count. Needs moderator:read:followers." },
+  { group: "AI models", for: ["@ai"], key: "ANTHROPIC_API_KEY", label: "Anthropic API key", help: "Lets Claude write the brief and answer chat. Then pick a claude-* model on the AI tab.", url: "https://console.anthropic.com/settings/keys" },
+  { group: "AI models", for: ["@ai"], key: "OPENROUTER_API_KEY", label: "OpenRouter API key", help: "One key, any hosted model. Then pick an openrouter/… model on the AI tab.", url: "https://openrouter.ai/keys" },
+  { group: "AI credits", for: ["credits"], key: "ANTHROPIC_ADMIN_KEY", label: "Anthropic admin key", help: "Month-to-date spend. sk-ant-admin…, organization accounts only.", url: "https://platform.claude.com/settings/admin-keys" },
+  { group: "AI credits", for: ["credits"], key: "OPENAI_ADMIN_KEY", label: "OpenAI admin key", help: "Month-to-date spend. An admin key, not a project key.", url: "https://platform.openai.com/settings/organization/admin-keys" },
+  { group: "AI credits", for: ["credits"], key: "OPENROUTER_MANAGEMENT_KEY", optional: true, label: "OpenRouter management key", help: "Optional. Exact credits left; without it the card uses your normal key’s limit.", url: "https://openrouter.ai/settings/keys" },
+  { group: "AI credits", for: ["credits"], key: "DEEPSEEK_API_KEY", label: "DeepSeek API key", help: "Account balance.", url: "https://platform.deepseek.com/api_keys" },
+  { group: "Calendar", for: ["calendar"], key: "CALENDAR_ICS", label: "Calendar iCal URL", help: "Google Calendar → Settings → your calendar → Secret address in iCal format. Comma-separate several." },
+  { group: "Inbox", for: ["email"], key: "GMAIL_USER", label: "Gmail address", help: "", secret: false },
+  { group: "Inbox", for: ["email"], key: "GMAIL_APP_PASSWORD", label: "Gmail app password", help: "Google Account → Security → 2-Step Verification → App passwords.", url: "https://myaccount.google.com/apppasswords" },
+  { group: "GitHub", for: ["github","attention"], key: "GITHUB_TOKEN", optional: true, label: "GitHub token", help: "Optional if `gh auth login` is done. Scopes: repo, notifications.", url: "https://github.com/settings/tokens" },
+  { group: "YouTube", for: ["youtube"], key: "YOUTUBE_API_KEY", label: "YouTube API key", help: "Google Cloud → YouTube Data API v3 → Credentials.", url: "https://console.cloud.google.com/apis/credentials" },
+  { group: "YouTube", for: ["youtube"], key: "YOUTUBE_CHANNEL_ID", label: "YouTube channel id", help: "Starts with UC. YouTube Studio → Settings → Channel → Advanced.", secret: false },
+  { group: "Twitch", for: ["twitch"], key: "TWITCH_LOGIN", label: "Twitch channel", help: "Your channel name.", secret: false },
+  { group: "Twitch", for: ["twitch"], key: "TWITCH_CLIENT_ID", label: "Twitch client id", help: "dev.twitch.tv → Console → Register application.", url: "https://dev.twitch.tv/console/apps", secret: false },
+  { group: "Twitch", for: ["twitch"], key: "TWITCH_CLIENT_SECRET", label: "Twitch client secret", help: "Same application → New secret." },
+  { group: "Twitch", for: ["twitch"], key: "TWITCH_USER_TOKEN", optional: true, label: "Twitch user token", help: "Optional, for follower count. Needs moderator:read:followers." },
 ];
 
 // Per-widget settings shown in the Widgets tab. Types: text | number | select | list (one per line).

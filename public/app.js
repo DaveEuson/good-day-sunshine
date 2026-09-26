@@ -289,10 +289,9 @@ async function openSettings(tab = "you") {
 
   // Keys
   keyMeta = envInfo ?? [];
-  keyClear.clear();
+  keyClear.clear(); keyOpen.clear();
   $("#admin-note").hidden = !!envInfo;
   renderKeys();
-  $("#keys-dot").hidden = !data.widgets.some((w) => w.status === "error");
 
   showTab(tab);
   if (!$("#settings").open) $("#settings").showModal();
@@ -389,27 +388,67 @@ $("#widget-list").addEventListener("click", (e) => {
   document.querySelectorAll("#widget-list .wrow")[j]?.querySelector(`[data-mv="${b.dataset.mv}"]:not(:disabled), [data-mv]`)?.focus();
 });
 
-// ---- Keys: grouped, status pill, clear button
+// ---- Keys: ordered by what needs you. Each group is tied to the widgets that use it (`for` in providers/index.js).
+const keyOpen = new Set();   // saved secret keys whose "Replace" box is open
+function keySections() {
+  const onTypes = new Set(data.config.widgets.map((w) => w.type));
+  const byType = Object.fromEntries(data.widgets.map((w) => [w.type, w]));
+  const groups = [...new Set(keyMeta.map((k) => k.group ?? "Other"))].map((g) => {
+    const keys = keyMeta.filter((k) => (k.group ?? "Other") === g);
+    const types = [...new Set(keys.flatMap((k) => k.for ?? []))];
+    const widgets = types.map((t) => byType[t]).filter(Boolean);
+    let section, note = "";
+    if (types.includes("@ai")) section = "ai";
+    else if (!types.some((t) => onTypes.has(t))) section = "off";
+    else if (widgets.some((w) => w.status === "error")) { section = "fix"; note = widgets.filter((w) => w.status === "error").map((w) => w.error).join(" · "); }
+    else if (widgets.some((w) => w.status === "setup")) { section = "need"; note = types.includes("credits") ? "Turned on, but not connected yet. Any one of these is enough." : "Turned on, but not connected yet."; }
+    else section = "ok";
+    return { g, keys, section, note };
+  });
+  return groups;
+}
+function keyRow(k, expand) {
+  const id = `key-${k.key}`;
+  const clearing = keyClear.has(k.key);
+  const saved = k.set && !clearing;
+  const secret = k.secret !== false;
+  const showInput = !secret || !k.set || expand || keyOpen.has(k.key);
+  const status = clearing ? `<span class="pill-s clr">will be removed</span>` : k.set ? `<span class="pill-s ok">✓ saved</span>` : k.optional ? `<span class="pill-s">optional</span>` : `<span class="pill-s">not set</span>`;
+  const actions = [
+    secret && saved && !showInput ? `<button type="button" class="link sm" data-open-key="${k.key}">replace</button>` : "",
+    secret && k.set ? `<button type="button" class="link sm" data-clear="${k.key}">${clearing ? "keep it" : "remove"}</button>` : "",
+    k.url && (!k.set || showInput) ? `<a href="${esc(k.url)}" target="_blank" rel="noopener" class="link sm">get one ↗</a>` : "",
+  ].filter(Boolean).join("");
+  const input = !showInput ? "" : secret
+    ? `<input id="${id}" name="env:${k.key}" type="password" placeholder="${k.set ? "paste a new one to replace" : "paste here"}" autocomplete="off" ${clearing ? "disabled" : ""}>`
+    : `<input id="${id}" name="env:${k.key}" value="${esc(k.value ?? "")}" autocomplete="off">`;
+  return `<div class="key ${showInput ? "" : "compact"}">
+    <div class="key-top"><label ${showInput ? `for="${id}"` : ""}>${esc(k.label)}</label>${status}<span class="key-actions">${actions}</span></div>
+    ${input}${showInput && k.help ? `<p class="help">${esc(k.help)}</p>` : ""}
+  </div>`;
+}
+const SECTIONS = [
+  ["fix", "Needs fixing"],
+  ["need", "Needed for widgets you turned on"],
+  ["ok", "Connected"],
+  ["ai", "AI models · optional, for Claude or OpenRouter instead of local models"],
+];
 function renderKeys() {
-  const groups = [...new Set(keyMeta.map((k) => k.group ?? "Other"))];
-  $("#key-list").innerHTML = groups.map((g) => `<fieldset class="key-group"><legend>${esc(g)}</legend>${keyMeta.filter((k) => (k.group ?? "Other") === g).map((k) => {
-    const id = `key-${k.key}`;
-    const clearing = keyClear.has(k.key);
-    const status = clearing ? `<span class="pill-s clr">will be removed</span>` : k.set ? `<span class="pill-s ok">saved</span>` : `<span class="pill-s">not set</span>`;
-    const input = k.secret === false
-      ? `<input id="${id}" name="env:${k.key}" value="${esc(k.value ?? "")}" autocomplete="off">`
-      : `<input id="${id}" name="env:${k.key}" type="password" placeholder="${k.set ? "saved · type to replace" : "paste here"}" autocomplete="off" ${clearing ? "disabled" : ""}>`;
-    return `<div class="key">
-      <div class="key-top"><label for="${id}">${esc(k.label)}</label>${status}${k.set && k.secret !== false ? `<button type="button" class="link sm" data-clear="${k.key}">${clearing ? "keep" : "remove"}</button>` : ""}${k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener" class="link sm">get one ↗</a>` : ""}</div>
-      ${input}${k.help ? `<p class="help">${esc(k.help)}</p>` : ""}
-    </div>`;
-  }).join("")}</fieldset>`).join("");
+  const groups = keySections();
+  const block = (grp) => `<fieldset class="key-group ${grp.section}"><legend>${esc(grp.g)}</legend>
+    ${grp.note ? `<p class="key-note">${grp.section === "fix" ? "⚠ " : ""}${esc(grp.note)}</p>` : ""}
+    ${grp.keys.map((k) => keyRow(k, grp.section === "fix")).join("")}</fieldset>`;
+  const off = groups.filter((x) => x.section === "off");
+  $("#key-list").innerHTML =
+    SECTIONS.map(([id, title]) => { const gs = groups.filter((x) => x.section === id); return gs.length ? `<h4 class="key-sec ${id}">${esc(title)}</h4>${gs.map(block).join("")}` : ""; }).join("") +
+    (off.length ? `<details class="key-off"><summary>Keys for widgets that are off (${off.map((x) => esc(x.g)).join(", ")})</summary>${off.map(block).join("")}</details>` : "");
+  $("#keys-dot").hidden = !groups.some((x) => x.section === "fix");
 }
 $("#key-list").addEventListener("click", (e) => {
-  const b = e.target.closest("[data-clear]");
-  if (!b) return;
-  keyClear.has(b.dataset.clear) ? keyClear.delete(b.dataset.clear) : keyClear.add(b.dataset.clear);
-  renderKeys();
+  const c = e.target.closest("[data-clear]");
+  if (c) { keyClear.has(c.dataset.clear) ? keyClear.delete(c.dataset.clear) : keyClear.add(c.dataset.clear); renderKeys(); return; }
+  const o = e.target.closest("[data-open-key]");
+  if (o) { keyOpen.add(o.dataset.openKey); renderKeys(); $(`#key-${o.dataset.openKey}`)?.focus(); }
 });
 
 // ---- Save
