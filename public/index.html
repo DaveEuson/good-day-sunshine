@@ -48,35 +48,95 @@
   </form>
 </aside>
 
-<dialog id="settings" class="settings">
-  <form method="dialog" id="settings-form">
-    <h2>Options</h2>
-    <div class="fields">
-      <label>Name <input name="name" required></label>
-      <label>Default theme <select name="theme" id="settings-theme"></select></label>
-      <label>Character <select name="character"><option value="sun">Sun · warm, a little nudgy</option><option value="cat">Cat · dry, secretly kind</option><option value="robot">Robot · precise</option><option value="cloud">Cloud · soft</option><option value="coffee">Coffee · quick</option></select></label>
-      <label>Accent <input name="accent" placeholder="#7aa2ff or blank"></label>
-      <label><input type="checkbox" name="briefEnabled"> Morning brief</label>
-      <label>Brief tone <input name="tone" placeholder="warm, concise"></label>
-      <label><input type="checkbox" name="sound"> Sounds</label>
-      <label>Quiet hours <input name="quietStart" type="time"> to <input name="quietEnd" type="time"> <span class="hint">screen dims, tap to wake</span></label>
-      <label>Small display cycle <input name="cycleSec" type="number" min="3" max="120" style="width:5em"> s</label>
-      <label>Wake-up alarm <input name="alarmTime" type="time"> <span class="days"><label><input type="checkbox" name="alarmDay" value="0">Su</label><label><input type="checkbox" name="alarmDay" value="1">Mo</label><label><input type="checkbox" name="alarmDay" value="2">Tu</label><label><input type="checkbox" name="alarmDay" value="3">We</label><label><input type="checkbox" name="alarmDay" value="4">Th</label><label><input type="checkbox" name="alarmDay" value="5">Fr</label><label><input type="checkbox" name="alarmDay" value="6">Sa</label></span> <span class="hint">screen brightens over 10 min, soft chime, snooze or I’m up · <a href="?wake=test" id="wake-test">test it</a></span></label>
+<dialog id="settings" class="settings" aria-labelledby="settings-title">
+  <form method="dialog" id="settings-form" novalidate>
+    <header class="set-head">
+      <h2 id="settings-title">Options</h2>
+      <nav class="set-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="you" aria-selected="true">You</button>
+        <button type="button" role="tab" data-tab="morning">Morning</button>
+        <button type="button" role="tab" data-tab="widgets">Widgets</button>
+        <button type="button" role="tab" data-tab="ai">AI</button>
+        <button type="button" role="tab" data-tab="keys">Keys <span class="tab-dot" id="keys-dot" hidden></span></button>
+        <button type="button" role="tab" data-tab="display">Display</button>
+      </nav>
+    </header>
+
+    <div class="set-body">
+      <section data-panel="you" role="tabpanel">
+        <div class="set-row"><label for="set-name">Name</label><input id="set-name" name="name" required autocomplete="off"></div>
+        <div class="set-row"><label for="set-char">Character</label>
+          <div class="char-pick" id="char-pick"></div>
+          <input type="hidden" name="character">
+        </div>
+        <div class="set-row"><label for="settings-theme">Theme</label><select id="settings-theme" name="theme"></select></div>
+        <div class="set-row"><label for="set-accent">Accent colour</label>
+          <div class="inline"><input id="set-accent" name="accentPick" type="color"><label class="check"><input type="checkbox" name="accentOn"> use my own colour</label></div>
+        </div>
+      </section>
+
+      <section data-panel="morning" role="tabpanel" hidden>
+        <div class="set-row"><span class="lbl">Morning brief</span><label class="check"><input type="checkbox" name="briefEnabled"> write me a short brief</label></div>
+        <div class="set-row"><label for="set-tone">Tone</label>
+          <select id="set-tone" name="tone">
+            <option value="warm, steady, encouraging">Warm and steady</option>
+            <option value="direct, efficient, no fluff">Direct and efficient</option>
+            <option value="playful, light, still useful">Playful but useful</option>
+            <option value="warm, concise, a little dry">A little dry</option>
+          </select>
+        </div>
+        <div class="set-row"><label for="set-alarm">Wake-up alarm</label>
+          <div>
+            <div class="inline"><input id="set-alarm" name="alarmTime" type="time"><button type="button" class="ghost sm" id="alarm-clear">No alarm</button></div>
+            <div class="days" role="group" aria-label="Alarm days">
+              <label><input type="checkbox" name="alarmDay" value="1"><span>Mo</span></label><label><input type="checkbox" name="alarmDay" value="2"><span>Tu</span></label><label><input type="checkbox" name="alarmDay" value="3"><span>We</span></label><label><input type="checkbox" name="alarmDay" value="4"><span>Th</span></label><label><input type="checkbox" name="alarmDay" value="5"><span>Fr</span></label><label><input type="checkbox" name="alarmDay" value="6"><span>Sa</span></label><label><input type="checkbox" name="alarmDay" value="0"><span>Su</span></label>
+            </div>
+            <p class="help">The screen brightens over 10 minutes before this time, then a soft chime. <a href="?wake=test" target="_blank">Try it (12 s)</a></p>
+          </div>
+        </div>
+        <div class="set-row"><span class="lbl">Sounds</span><label class="check"><input type="checkbox" name="sound"> chimes and garden sounds</label></div>
+      </section>
+
+      <section data-panel="widgets" role="tabpanel" hidden>
+        <p class="help top">Tick what you want on the page. Arrows change the order. Settings appear for the ones that are on.</p>
+        <div id="widget-list" class="widget-list"></div>
+      </section>
+
+      <section data-panel="ai" role="tabpanel" hidden>
+        <p class="ai-state" id="ai-status"></p>
+        <div class="set-row"><label for="brief-model">Brief model</label><select id="brief-model" name="OLLAMA_MODEL"></select></div>
+        <div class="set-row"><label for="chat-model-sel">Chat model</label><select id="chat-model-sel" name="CHAT_MODEL"></select></div>
+        <div class="set-row"><label for="set-ollama">Ollama address</label><input id="set-ollama" name="OLLAMA_URL" placeholder="http://localhost:11434"></div>
+        <p class="help">Local models keep everything on this machine. claude-* and openrouter/* models need a key on the Keys tab and send your dashboard data to that service.</p>
+      </section>
+
+      <section data-panel="keys" role="tabpanel" hidden>
+        <p class="help top">Saved on this machine only. A key is never shown again once saved; type a new one to replace it.</p>
+        <div id="key-list" class="key-list"></div>
+        <p class="help warn-note" id="admin-note" hidden>Keys can only be changed from the computer running Good Day Sunshine.</p>
+      </section>
+
+      <section data-panel="display" role="tabpanel" hidden>
+        <div class="set-row"><label for="set-qs">Quiet hours</label>
+          <div>
+            <div class="inline"><input id="set-qs" name="quietStart" type="time"><span>to</span><input name="quietEnd" type="time" aria-label="Quiet hours end"><button type="button" class="ghost sm" id="quiet-clear">Off</button></div>
+            <p class="help">The screen goes dark with a dim clock. Tap it to wake for 3 minutes.</p>
+          </div>
+        </div>
+        <div class="set-row"><label for="set-cycle">Small screen</label>
+          <div class="inline"><span>show each card for</span><input id="set-cycle" name="cycleSec" type="number" min="3" max="120" class="num"><span>seconds</span></div>
+        </div>
+        <div class="set-row"><span class="lbl">Open as</span>
+          <div class="inline wrap"><a class="btn-link" href="?mode=tv" target="_blank">TV / big screen</a><a class="btn-link" href="?mode=small" target="_blank">Small panel</a><a class="btn-link" href="?setup=1">Run setup again</a></div>
+        </div>
+      </section>
     </div>
-    <h3>Widgets <span class="hint">check to show, ▲▼ to order</span></h3>
-    <div id="widget-list" class="widget-list"></div>
-    <h3>AI <span class="hint" id="ai-status"></span></h3>
-    <div class="fields">
-      <label>Ollama URL <input name="OLLAMA_URL" placeholder="http://localhost:11434"></label>
-      <label>Brief model <select name="OLLAMA_MODEL" id="brief-model"></select></label>
-      <label>Chat model <select name="CHAT_MODEL" id="chat-model-sel"></select></label>
-    </div>
-    <h3>Keys <span class="hint">saved to .env on the server, never shown again. Blank = keep, <code>-</code> = clear.</span></h3>
-    <div id="key-list" class="fields keys"></div>
-    <p class="hint" id="admin-note" hidden>Keys and profile can only be edited from the machine running the server.</p>
-    <h3>Display modes</h3>
-    <p class="hint">Append to the URL: <code>?mode=tv</code> big screen, no controls · <code>?mode=small</code> one card at a time, for small always-on panels · <code>?u=name</code> profile.</p>
-    <div class="row end"><button value="cancel" class="ghost">Cancel</button><button value="save" id="settings-save">Save & reload</button></div>
+
+    <footer class="set-foot">
+      <span class="set-msg" id="settings-msg" role="status"></span>
+      <button value="cancel" class="ghost" formnovalidate>Cancel</button>
+      <button value="save" id="settings-save">Save</button>
+    </footer>
   </form>
 </dialog>
 

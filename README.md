@@ -68,7 +68,7 @@ Create `providers/<name>.js` exporting `meta = { title, icon }` and `fetchData(c
 { stats: [{ label, value, sub? }], items: [{ text, url?, badge?, sub? }], attention: [{ text, url, level }] }
 ```
 
-Register it in `providers/index.js` (and add an `OPTION_HINTS` entry so the options menu shows a placeholder). Done.
+Register it in `providers/index.js` (and add an `OPTION_FIELDS` entry so the Widgets tab shows typed fields for it). Done.
 
 ### Themes
 

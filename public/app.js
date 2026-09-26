@@ -222,106 +222,210 @@ $("#chat-form").onsubmit = async (e) => {
 // ---------- options menu ----------
 $("#settings-toggle").onclick = () => openSettings();
 let keyMeta = [];
-async function openSettings() {
+const keyClear = new Set();
+
+// ---- tabs
+function showTab(name) {
+  for (const t of document.querySelectorAll(".set-tabs [data-tab]")) t.setAttribute("aria-selected", String(t.dataset.tab === name));
+  for (const p of document.querySelectorAll("#settings [data-panel]")) p.hidden = p.dataset.panel !== name;
+  $("#settings .set-body").scrollTop = 0;
+}
+$("#settings .set-tabs").addEventListener("click", (e) => { const t = e.target.closest("[data-tab]"); if (t) showTab(t.dataset.tab); });
+const setMsg = (text, bad = false) => { const m = $("#settings-msg"); m.textContent = text; m.classList.toggle("bad", bad); };
+
+async function openSettings(tab = "you") {
   const [cat, envInfo, models] = await Promise.all([
-    catalog.length ? catalog : (await fetch("/api/catalog")).json(),
-    fetch("/api/env").then((r) => r.ok ? r.json() : null),
-    fetch("/api/models").then((r) => r.ok ? r.json() : null),
+    catalog.length ? catalog : fetch("/api/catalog").then((r) => r.json()),
+    fetch("/api/env").then((r) => (r.ok ? r.json() : null)),
+    fetch("/api/models").then((r) => (r.ok ? r.json() : null)),
   ]);
   catalog = cat;
   const cfg = data.config;
   const f = $("#settings-form");
+  setMsg("");
+
+  // You
+  f.name.value = cfg.name ?? "";
   themeOptions($("#settings-theme"), true);
-  // AI
-  $("#admin-note").hidden = !!envInfo;
-  if (models) {
-    f.OLLAMA_URL.value = models.url;
-    const opts = (cur) => [...new Set([cur, ...models.models])].filter(Boolean).map((m) => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("");
-    $("#brief-model").innerHTML = opts(models.brief); $("#chat-model-sel").innerHTML = opts(models.chat);
-    $("#ai-status").textContent = [models.local ? `${models.local} local models` : "Ollama not reachable", models.claude ? "Claude ready" : "", models.openrouter ? "OpenRouter ready" : "", models.cloud?.length ? `⚠ dashboard data is sent to ${[...new Set(models.cloud)].join(" and ")}` : "nothing leaves this machine"].filter(Boolean).join(" · ");
-  }
-  // Keys
-  keyMeta = envInfo ?? [];
-  $("#key-list").innerHTML = keyMeta.map((k) => `<label title="${esc(k.help)}">${esc(k.label)}${k.url ? ` <a href="${esc(k.url)}" target="_blank" rel="noopener">↗</a>` : ""}
-    <input name="env:${k.key}" ${k.secret === false ? `value="${esc(k.value ?? "")}"` : `type="password" placeholder="${k.set ? "•••••• (set)" : "not set"}"`} autocomplete="off"></label>`).join("");
-  f.name.value = cfg.name; f.theme.value = cfg.theme ?? "sunrise"; f.character.value = cfg.character ?? "sun"; f.accent.value = cfg.accent ?? "";
-  f.briefEnabled.checked = cfg.brief?.enabled !== false; f.tone.value = cfg.brief?.tone ?? "";
-  f.sound.checked = !!cfg.sound;
-  f.quietStart.value = cfg.quiet?.start ?? ""; f.quietEnd.value = cfg.quiet?.end ?? "";
-  f.cycleSec.value = cfg.display?.cycleSec ?? 12;
+  f.theme.value = cfg.theme ?? "sunrise";
+  renderCharacters(cfg.character ?? "sun");
+  f.accentOn.checked = !!cfg.accent;
+  f.accentPick.value = cfg.accent || (THEMES[f.theme.value]?.accent ?? "#d1620a");
+  f.accentPick.disabled = !f.accentOn.checked;
+
+  // Morning
+  f.briefEnabled.checked = cfg.brief?.enabled !== false;
+  const tone = cfg.brief?.tone || "warm, concise, a little dry";
+  if (![...f.tone.options].some((o) => o.value === tone)) f.tone.add(new Option(tone, tone));
+  f.tone.value = tone;
   f.alarmTime.value = cfg.alarm?.time ?? "";
   for (const c of f.querySelectorAll("[name=alarmDay]")) c.checked = (cfg.alarm?.days ?? [1, 2, 3, 4, 5]).includes(+c.value);
-  // enabled widgets in config order, then the rest of the catalog disabled
+  f.sound.checked = !!cfg.sound;
+
+  // Display
+  f.quietStart.value = cfg.quiet?.start ?? ""; f.quietEnd.value = cfg.quiet?.end ?? "";
+  f.cycleSec.value = cfg.display?.cycleSec ?? 12;
+
+  // Widgets
   const rows = [...cfg.widgets.map((w) => ({ ...w, on: true })), ...catalog.filter((c) => !cfg.widgets.some((w) => w.type === c.type)).map((c) => ({ type: c.type, on: false }))];
   renderWidgetRows(rows);
+
+  // AI
+  if (models) {
+    f.OLLAMA_URL.value = models.url;
+    const opts = (cur) => {
+      const groups = [["Local (stays on this machine)", models.models.filter((m) => !/^(claude-|openrouter\/)/.test(m))], ["Claude (needs Anthropic key)", models.models.filter((m) => /^claude-/.test(m))], ["OpenRouter (needs OpenRouter key)", models.models.filter((m) => /^openrouter\//.test(m))]];
+      const known = new Set(models.models);
+      const extra = cur && !known.has(cur) ? `<option selected>${esc(cur)}</option>` : "";
+      return extra + groups.filter(([, l]) => l.length).map(([g, l]) => `<optgroup label="${esc(g)}">${l.map((m) => `<option ${m === cur ? "selected" : ""}>${esc(m)}</option>`).join("")}</optgroup>`).join("");
+    };
+    $("#brief-model").innerHTML = opts(models.brief);
+    $("#chat-model-sel").innerHTML = opts(models.chat);
+    const cloud = models.cloud?.length ? `Sends dashboard data to ${[...new Set(models.cloud)].join(" and ")}.` : "Nothing leaves this machine.";
+    $("#ai-status").innerHTML = `<b>${models.local ? `${models.local} local models` : "Ollama isn’t reachable"}</b>${models.claude ? " · Claude ready" : ""}${models.openrouter ? " · OpenRouter ready" : ""}<br>${esc(cloud)}`;
+    $("#ai-status").classList.toggle("cloud", !!models.cloud?.length);
+  }
+
+  // Keys
+  keyMeta = envInfo ?? [];
+  keyClear.clear();
+  $("#admin-note").hidden = !!envInfo;
+  renderKeys();
+  $("#keys-dot").hidden = !data.widgets.some((w) => w.status === "error");
+
+  showTab(tab);
+  if (!$("#settings").open) $("#settings").showModal();
 }
-// Per-widget option fields come from the catalog hint (example JSON): key → input, typed by the example value.
-const hintFields = (c) => { try { return Object.entries(JSON.parse(c.hint)); } catch { return []; } };
-const fieldVal = (v) => Array.isArray(v) ? v.join(", ") : v && typeof v === "object" ? JSON.stringify(v) : v ?? "";
+
+// ---- You: character picker with the real faces
+function renderCharacters(cur) {
+  const f = $("#settings-form");
+  f.character.value = cur;
+  const t = THEMES[document.documentElement.dataset.theme] ?? {};
+  const acc = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent;
+  const blurb = { sun: "warm, a little nudgy", cat: "dry, secretly kind", robot: "precise", cloud: "soft", coffee: "quick" };
+  $("#char-pick").innerHTML = Object.entries(CHARACTERS).map(([id, n]) => `<button type="button" class="char ${id === cur ? "on" : ""}" data-char="${id}" aria-pressed="${id === cur}"><img src="${faceURI(id, false, acc, t.card || "#fff")}" alt="" width="40" height="40"><b>${esc(n)}</b><span>${esc(blurb[id])}</span></button>`).join("");
+}
+$("#char-pick").addEventListener("click", (e) => { const b = e.target.closest("[data-char]"); if (b) renderCharacters(b.dataset.char); });
+$("#settings-form").accentOn.addEventListener("change", (e) => { e.target.form.accentPick.disabled = !e.target.checked; });
+$("#settings-theme").addEventListener("change", (e) => { const f = e.target.form; if (!f.accentOn.checked) f.accentPick.value = THEMES[e.target.value]?.accent ?? f.accentPick.value; });
+$("#alarm-clear").onclick = () => { $("#settings-form").alarmTime.value = ""; };
+$("#quiet-clear").onclick = () => { const f = $("#settings-form"); f.quietStart.value = ""; f.quietEnd.value = ""; };
+
+// ---- Widgets: typed fields from the catalog, shown only for widgets that are on
+const getPath = (o, p) => p.split(".").reduce((v, k) => (v == null ? undefined : v[k]), o);
+const setPath = (o, p, v) => { const ks = p.split("."); let cur = o; for (const k of ks.slice(0, -1)) cur = cur[k] ??= {}; cur[ks.at(-1)] = v; };
+function fieldHTML(fd, val) {
+  const id = `wf-${Math.random().toString(36).slice(2, 8)}`;
+  const common = `id="${id}" data-k="${esc(fd.k)}" data-type="${fd.type}"`;
+  let input;
+  if (fd.type === "select") input = `<select ${common}>${fd.options.map(([v, l]) => `<option value="${esc(v)}" ${String(val ?? fd.def) === String(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+  else if (fd.type === "list") input = `<textarea ${common} rows="2" placeholder="${esc(fd.ph ?? "")}">${esc((val ?? []).join("\n"))}</textarea>`;
+  else if (fd.type === "number") input = `<input ${common} type="number" class="num" ${fd.min != null ? `min="${fd.min}"` : ""} ${fd.max != null ? `max="${fd.max}"` : ""} value="${esc(val ?? "")}" placeholder="${esc(fd.ph ?? (fd.def != null ? String(fd.def) : ""))}">`;
+  else input = `<input ${common} value="${esc(val ?? "")}" placeholder="${esc(fd.ph ?? "")}" autocomplete="off">`;
+  return `<div class="wf"><label for="${id}">${esc(fd.label)}</label>${input}</div>`;
+}
 function renderWidgetRows(rows) {
   $("#widget-list").innerHTML = rows.map((w, i) => {
-    const c = catalog.find((x) => x.type === w.type) ?? { title: w.type, icon: "•", hint: "{}" };
-    const { type, on, title, ...opts } = w;
-    const fields = hintFields(c).map(([k, ex]) => `<label class="w-field">${esc(k)} <input data-k="${esc(k)}" data-ex='${esc(JSON.stringify(ex))}' placeholder="${esc(fieldVal(ex))}" value="${esc(fieldVal(opts[k]))}"></label>`).join("");
-    return `<div class="wrow" data-type="${type}">
-      <label><input type="checkbox" class="w-on" ${on ? "checked" : ""}> <span class="icon">${esc(c.icon)}</span> ${esc(c.title)}</label>
-      <input class="w-title" placeholder="title" value="${esc(title ?? "")}">
-      <div class="w-fields">${fields || `<span class="hint">no options</span>`}</div>
-      <span class="w-move"><button type="button" data-mv="-1" ${i === 0 ? "disabled" : ""}>▲</button><button type="button" data-mv="1" ${i === rows.length - 1 ? "disabled" : ""}>▼</button></span>
+    const c = catalog.find((x) => x.type === w.type) ?? { title: w.type, icon: "•", fields: [] };
+    const fields = (c.fields ?? []).map((fd) => fieldHTML(fd, getPath(w, fd.k))).join("");
+    return `<div class="wrow ${w.on ? "on" : ""}" data-type="${esc(w.type)}">
+      <div class="wrow-head">
+        <label class="check"><input type="checkbox" class="w-on" ${w.on ? "checked" : ""}><span class="icon">${esc(c.icon)}</span><b>${esc(c.title)}</b></label>
+        <input class="w-title" value="${esc(w.title ?? "")}" placeholder="rename" aria-label="Rename ${esc(c.title)}" autocomplete="off">
+        <span class="w-move"><button type="button" data-mv="-1" aria-label="Move up" ${i === 0 ? "disabled" : ""}>▲</button><button type="button" data-mv="1" aria-label="Move down" ${i === rows.length - 1 ? "disabled" : ""}>▼</button></span>
+      </div>
+      ${fields ? `<div class="wrow-fields">${fields}</div>` : ""}
     </div>`;
   }).join("");
-  $("#settings").showModal();
 }
 function readWidgetRows() {
-  return [...document.querySelectorAll(".wrow")].map((r) => {
+  return [...document.querySelectorAll("#widget-list .wrow")].map((r) => {
     const type = r.dataset.type, on = r.querySelector(".w-on").checked, title = r.querySelector(".w-title").value.trim();
-    const opts = {};
-    for (const inp of r.querySelectorAll(".w-field input")) {
-      const raw = inp.value.trim();
+    const out = { type, on, ...(title ? { title } : {}) };
+    for (const el of r.querySelectorAll("[data-k]")) {
+      const raw = el.value.trim();
       if (!raw) continue;
-      const ex = JSON.parse(inp.dataset.ex);
-      if (ex && typeof ex === "object" && !Array.isArray(ex)) { try { opts[inp.dataset.k] = JSON.parse(raw); } catch { throw new Error(`${type} → ${inp.dataset.k} must be JSON like ${JSON.stringify(ex)}`); } continue; }
-      opts[inp.dataset.k] = Array.isArray(ex) ? raw.split(",").map((s) => s.trim()).filter(Boolean) : typeof ex === "number" ? Number(raw) : raw;
+      const t = el.dataset.type;
+      const v = t === "number" ? Number(raw) : t === "list" ? raw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean) : t === "select" && /^\d+$/.test(raw) ? Number(raw) : raw;
+      if (t === "number" && !Number.isFinite(v)) throw new Error(`${type}: ${el.previousElementSibling?.textContent ?? el.dataset.k} must be a number.`);
+      setPath(out, el.dataset.k, v);
     }
-    return { type, on, ...(title ? { title } : {}), ...opts };
+    return out;
   });
 }
+$("#widget-list").addEventListener("change", (e) => { if (e.target.classList.contains("w-on")) e.target.closest(".wrow").classList.toggle("on", e.target.checked); });
 $("#widget-list").addEventListener("click", (e) => {
   const b = e.target.closest("[data-mv]");
   if (!b) return;
-  const rows = readWidgetRows(), i = [...document.querySelectorAll(".wrow")].indexOf(b.closest(".wrow")), j = i + +b.dataset.mv;
+  const rows = readWidgetRows(), i = [...document.querySelectorAll("#widget-list .wrow")].indexOf(b.closest(".wrow")), j = i + +b.dataset.mv;
   [rows[i], rows[j]] = [rows[j], rows[i]];
-  $("#settings").close(); renderWidgetRows(rows);
+  renderWidgetRows(rows);
+  document.querySelectorAll("#widget-list .wrow")[j]?.querySelector(`[data-mv="${b.dataset.mv}"]:not(:disabled), [data-mv]`)?.focus();
 });
+
+// ---- Keys: grouped, status pill, clear button
+function renderKeys() {
+  const groups = [...new Set(keyMeta.map((k) => k.group ?? "Other"))];
+  $("#key-list").innerHTML = groups.map((g) => `<fieldset class="key-group"><legend>${esc(g)}</legend>${keyMeta.filter((k) => (k.group ?? "Other") === g).map((k) => {
+    const id = `key-${k.key}`;
+    const clearing = keyClear.has(k.key);
+    const status = clearing ? `<span class="pill-s clr">will be removed</span>` : k.set ? `<span class="pill-s ok">saved</span>` : `<span class="pill-s">not set</span>`;
+    const input = k.secret === false
+      ? `<input id="${id}" name="env:${k.key}" value="${esc(k.value ?? "")}" autocomplete="off">`
+      : `<input id="${id}" name="env:${k.key}" type="password" placeholder="${k.set ? "saved · type to replace" : "paste here"}" autocomplete="off" ${clearing ? "disabled" : ""}>`;
+    return `<div class="key">
+      <div class="key-top"><label for="${id}">${esc(k.label)}</label>${status}${k.set && k.secret !== false ? `<button type="button" class="link sm" data-clear="${k.key}">${clearing ? "keep" : "remove"}</button>` : ""}${k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener" class="link sm">get one ↗</a>` : ""}</div>
+      ${input}${k.help ? `<p class="help">${esc(k.help)}</p>` : ""}
+    </div>`;
+  }).join("")}</fieldset>`).join("");
+}
+$("#key-list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-clear]");
+  if (!b) return;
+  keyClear.has(b.dataset.clear) ? keyClear.delete(b.dataset.clear) : keyClear.add(b.dataset.clear);
+  renderKeys();
+});
+
+// ---- Save
 $("#settings-form").addEventListener("submit", async (e) => {
   if (e.submitter?.value !== "save") return;
   e.preventDefault();
   const f = e.target;
+  if (!f.name.value.trim()) { showTab("you"); f.name.focus(); return setMsg("Add a name first.", true); }
+  if ((f.quietStart.value && !f.quietEnd.value) || (!f.quietStart.value && f.quietEnd.value)) { showTab("display"); return setMsg("Quiet hours need both a start and an end.", true); }
+  setMsg("Saving…");
   try {
     const widgets = readWidgetRows().filter((w) => w.on).map(({ on, ...w }) => w);
+    const days = [...f.querySelectorAll("[name=alarmDay]:checked")].map((c) => +c.value);
     const cfg = {
-      ...data.config, name: f.name.value.trim(), theme: f.theme.value, character: f.character.value, accent: f.accent.value.trim() || null,
-      brief: { enabled: f.briefEnabled.checked, tone: f.tone.value.trim() || undefined },
+      ...data.config, name: f.name.value.trim(), theme: f.theme.value, character: f.character.value,
+      accent: f.accentOn.checked ? f.accentPick.value : null,
+      brief: { ...data.config.brief, enabled: f.briefEnabled.checked, tone: f.tone.value },
       sound: f.sound.checked,
       quiet: f.quietStart.value && f.quietEnd.value ? { start: f.quietStart.value, end: f.quietEnd.value } : undefined,
-      display: { cycleSec: +f.cycleSec.value || 12 },
-      alarm: f.alarmTime.value ? { time: f.alarmTime.value, days: [...f.querySelectorAll("[name=alarmDay]:checked")].map((c) => +c.value), ramp: 10 } : undefined,
+      display: { ...data.config.display, cycleSec: Math.min(120, Math.max(3, +f.cycleSec.value || 12)) },
+      alarm: f.alarmTime.value ? { time: f.alarmTime.value, days, ramp: 10 } : undefined,
       widgets,
     };
-    const r = await fetch(`/api/users/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify(cfg) });
-    const j = await r.json();
+    const j = await (await fetch(`/api/users/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify(cfg) })).json();
     if (j.error) throw new Error(j.error);
-    // keys + AI → .env (only non-empty; "-" clears)
     const envUpd = {};
-    for (const k of keyMeta) { const v = f[`env:${k.key}`].value.trim(); if (v) envUpd[k.key] = v === "-" ? "" : v; }
+    for (const k of keyMeta) {
+      if (keyClear.has(k.key)) { envUpd[k.key] = ""; continue; }
+      const v = f[`env:${k.key}`]?.value.trim() ?? "";
+      if (k.secret === false ? v !== (k.value ?? "") : v) envUpd[k.key] = v;
+    }
     for (const k of ["OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]) { const v = f[k]?.value?.trim(); if (v) envUpd[k] = v; }
     if (Object.keys(envUpd).length) {
       const er = await (await fetch("/api/env", { method: "PUT", body: JSON.stringify(envUpd) })).json();
       if (er.error) throw new Error(er.error);
     }
+    const p = themePrefs(); if (p.theme || p.accent) saveTheme({});   // saved theme wins over the header's per-browser override
     $("#settings").close();
+    toast("Saved.");
     load(true);
-  } catch (err) { $("#status").textContent = err.message; }
+  } catch (err) { setMsg(err.message, true); }
 });
 
 // ---------- display modes ----------
@@ -394,7 +498,7 @@ async function load(refresh = false) {
   $("#grid").innerHTML = ready.map(widget).join("");
   $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
   $("#setup-strip").innerHTML = [broken.length ? `<span class="err">⚠ ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
-  $("#setup-go")?.addEventListener("click", openSettings);
+  $("#setup-go")?.addEventListener("click", () => openSettings("keys"));
   $("#status").textContent = `Updated ${new Date().toLocaleTimeString()}`;
   $("#mode-hint").textContent = MODE ? `· ${MODE} mode` : "";
   const high = data.widgets.flatMap((w) => w.attention ?? []).filter((a) => a.level === "high").length;
@@ -402,7 +506,12 @@ async function load(refresh = false) {
   lastHigh = high;
   startCycle(); tickNight();
   loadBrief();
-  if (params.has("open")) { history.replaceState(null, "", location.pathname + (user !== "dave" ? `?u=${user}` : "")); if (params.get("open") === "options") openSettings(); }
+  if (params.has("open")) {   // one-shot: ?open=options[&tab=keys] from the tray or a link
+    const tab = params.get("tab") || "you", what = params.get("open");
+    params.delete("open"); params.delete("tab");
+    history.replaceState(null, "", location.pathname + (user !== "dave" ? `?u=${user}` : ""));
+    if (what === "options") openSettings(tab);
+  }
 }
 
 async function loadUsers() {
@@ -423,7 +532,7 @@ function pickFocusTask() {
   if (t) startFocus(t, user, { onDone: () => load() });
 }
 $("#focus-toggle").onclick = pickFocusTask;
-$("#grid").addEventListener("click", (e) => { if (e.target.closest("[data-open=options]")) openSettings(); const b = e.target.closest("[data-focus]"); if (b) startFocus(b.dataset.focus.replace(/^(Review|Assigned): /, ""), user, { onDone: () => load() }); });
+$("#grid").addEventListener("click", (e) => { if (e.target.closest("[data-open=options]")) openSettings("keys"); const b = e.target.closest("[data-focus]"); if (b) startFocus(b.dataset.focus.replace(/^(Review|Assigned): /, ""), user, { onDone: () => load() }); });
 document.addEventListener("keydown", (e) => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
   if (e.key === "r") load(true);

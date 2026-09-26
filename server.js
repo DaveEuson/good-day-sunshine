@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isSea } from "node:sea";
-import { providers, OPTION_HINTS, KEYS } from "./providers/index.js";
+import { providers, OPTION_FIELDS, KEYS } from "./providers/index.js";
 import { brief, fallback } from "./brief.js";
 import { chat } from "./chat.js";
 import { CLAUDE_MODELS, openrouterModels, provider } from "./ai.js";
@@ -135,8 +135,8 @@ http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/catalog") {
-      const cat = Object.entries(providers).map(([type, p]) => ({ type, title: p.meta.title, icon: p.meta.icon, hint: OPTION_HINTS[type] ?? "{}" }));
-      cat.splice(4, 0, { type: "garden", title: "Garden", icon: "❀", hint: "{}" }, { type: "noticed", title: "I noticed", icon: "✦", hint: "{}" });
+      const cat = Object.entries(providers).map(([type, p]) => ({ type, title: p.meta.title, icon: p.meta.icon, fields: OPTION_FIELDS[type] ?? [] }));
+      cat.splice(4, 0, { type: "garden", title: "Garden", icon: "❀", fields: [] }, { type: "noticed", title: "I noticed", icon: "✦", fields: [] });
       return json(res, 200, cat);
     }
 
