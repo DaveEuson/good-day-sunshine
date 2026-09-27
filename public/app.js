@@ -172,7 +172,7 @@ function gardenCard(w) {
       ${g.harvested.length ? `<div class="hint">Harvested: ${g.harvested.map((h) => g.seeds.find((s) => s.id === h.seed)?.final ?? "").join(" ")}</div>` : ""}
     </div>`;
   const log = g.log?.length ? `<div class="glog">${`<div>${esc(g.log[0])}</div>`}</div>` : "";
-  return `<section class="card widget garden" data-wid="${w.id}"><h2><span class="icon">❀</span>${esc(w.title)}</h2>${body}${shop}${log}</section>`;
+  return `<section class="card widget garden" data-wid="${w.id}" data-type="garden"><h2><span class="icon">❀</span>${esc(w.title)}</h2>${body}${shop}${log}</section>`;
 }
 
 $("#grid").addEventListener("click", async (e) => {
@@ -222,7 +222,7 @@ async function loadBrief() {
 
 // ---------- chat ----------
 const chatLog = [];
-$("#chat-toggle").onclick = () => { $("#chat").hidden = !$("#chat").hidden; if (!$("#chat").hidden) $("#chat-input").focus(); };
+$("#chat-toggle").onclick = () => { if (document.body.classList.contains("phone")) return window.phoneTab?.("chat"); $("#chat").hidden = !$("#chat").hidden; if (!$("#chat").hidden) $("#chat-input").focus(); };
 $("#chat-clear").onclick = () => { chatLog.length = 0; $("#chat-log").innerHTML = ""; };
 async function ask(q) {
   q = q.trim();
@@ -674,6 +674,7 @@ async function load(refresh = false) {
   const mood = getMood(user);
   const ready = data.widgets.filter((w) => w.status !== "setup" && !(mood === "rough" && w.type === "news")), pending = data.widgets.filter((w) => w.status === "setup"), broken = data.widgets.filter((w) => w.status === "error");
   $("#grid").innerHTML = ready.map(widget).join("");
+  window.phoneLayout?.();
   $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
   $("#setup-strip").innerHTML = [broken.length ? `<span class="err">⚠ ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
   $("#setup-go")?.addEventListener("click", () => openSettings("keys"));

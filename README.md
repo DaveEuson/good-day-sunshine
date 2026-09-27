@@ -133,6 +133,7 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 | where | how |
 |---|---|
 | Desktop browser | `http://host:4242/?u=dave` |
+| Phone (under 700 px) | same address. A bottom tab bar splits the page into **Today** (headline, brief, routine, needs-attention, calendar, weather, I noticed), **Updates** (inbox, news, GitHub, YouTube, Twitch, AI), **Garden**, and **Chat** (full screen, with starter questions). Badges show urgent items, new mail and an unwatered plant. Profile/theme move into Options. On another device you need the firewall rule below; Options can only be saved from the computer running the server. |
 | TV / big monitor | `?mode=tv` — no controls, big type, clock. |
 | Small always-on panel (3–7") | `?mode=small` — one card at a time, cycles every `display.cycleSec` (options menu), tap to advance. |
 | Night | Set quiet hours in options. Screen goes black with a dim clock; tap to wake for 3 min. A black LCD still backlights, so for true dark put the panel on DPMS/`vcgencmd display_power 0` from cron. |

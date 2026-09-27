@@ -486,3 +486,44 @@ body.small .grid > .widget.active { min-height: 200px; }
 /* evening */
 .chip.todo { border-style: dashed; color: var(--accent); border-color: var(--accent); }
 body.evening .ask-chips button[data-ask^="What should I do first"] { display: none; }
+
+/* ===== phone (under 700 px): slim header, one tab at a time, bottom tab bar ===== */
+.phone-tabs { display: none; }
+body.phone { padding: 12px 14px calc(76px + env(safe-area-inset-bottom)); }
+body.phone .phone-tabs { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--card); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -6px 20px rgba(0,0,0,.06); }
+.phone-tabs button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 56px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
+.phone-tabs button .g { font-size: 18px; line-height: 1; }
+.phone-tabs button[aria-current="true"] { color: var(--accent); font-weight: 700; }
+.phone-tabs button[aria-current="true"]::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent); }
+.phone-tabs .badge { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 10px; font-style: normal; font-weight: 700; display: grid; place-items: center; }
+.phone-tabs .badge.alert { background: var(--alert); color: #fff; }
+.phone-tabs .badge[hidden] { display: none; }
+
+/* header: date + tokens + the three buttons that matter; profile/theme/accent live in Options */
+body.phone .top { margin-bottom: 8px; gap: 8px; flex-wrap: nowrap; }
+body.phone .topbar-left .clock { display: none; }
+body.phone .date { font-size: 13px; }
+body.phone .controls { gap: 6px; }
+body.phone #user, body.phone #theme, body.phone #accent, body.phone #chat-toggle { display: none; }
+body.phone .controls button, body.phone .pill { min-height: 36px; }
+body.phone #focus-toggle { padding: 6px 10px; font-size: 13px; }
+
+/* Today tab = hero + brief + today cards; other tabs = their cards only */
+body.phone .hero { grid-template-columns: 48px 1fr; gap: 10px; margin: 4px 0 12px; }
+body.phone .hero .face { width: 48px; height: 48px; }
+body.phone .answer { font-size: 26px; }
+body.phone .mood .pill { min-height: 40px; }
+body.phone .ask { display: none; }
+body.phone:not([data-ptab="today"]) :is(#hero-block, #setup-strip, #brief) { display: none; }
+body.phone .grid { grid-template-columns: 1fr; gap: 12px; }
+body.phone .grid > .widget { grid-column: auto !important; }
+body.phone footer { display: none; }
+
+/* Chat tab: the assistant fills the screen above the tab bar */
+body.phone[data-ptab="chat"] :is(#hero-block, #setup-strip, #brief, #grid, .top) { display: none; }
+body.phone .chat { position: fixed; inset: 0 0 calc(56px + env(safe-area-inset-bottom)) 0; width: auto; height: auto; border-radius: 0; border: 0; box-shadow: none; z-index: 30; }
+body.phone .chat-head button { display: none; }
+body.phone .chat-form input { font-size: 16px; }   /* 16 px stops iOS zooming into the field */
+.starters { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: auto; }
+.starters p { margin: 0 0 2px; font-size: 14px; }
+.starters button { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 10px 16px; font: inherit; font-size: 15px; cursor: pointer; min-height: 44px; }
