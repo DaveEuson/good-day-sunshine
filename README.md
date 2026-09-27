@@ -49,7 +49,7 @@ Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sound
 | `attention` | – | GitHub token with `notifications` scope (`gh` works) |
 | `calendar` | `ics`, `days`, `max` | `CALENDAR_ICS` private iCal URL(s), comma separated. Google: calendar settings → "Secret address in iCal format". No OAuth. |
 | `weather` | `city` or `lat`/`lon`, `units` (`c`/`f`) | nothing |
-| `email` | `user`, `max` | `GMAIL_USER` + `GMAIL_APP_PASSWORD` (Google → Security → 2-Step → App passwords) |
+| `email` | `folder` (`primary` default, `important`, `inbox`), `user`, `max` | `GMAIL_USER` + `GMAIL_APP_PASSWORD` (Google → Security → 2-Step → App passwords). Leads with **new in the last 24 h** in the chosen folder; the whole-inbox unread total is only a footnote, because promotions make it meaningless |
 | `news` | `feeds` [urls], `perFeed`, `max` | nothing. Default: HN front page, BBC World, Ars Technica |
 | `routine` | `items` (one per line) | nothing |
 | `garden` | – | nothing |

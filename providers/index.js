@@ -48,7 +48,10 @@ export const OPTION_FIELDS = {
     { k: "city", label: "City", type: "text", ph: "blank = guess from your network" },
     { k: "units", label: "Units", type: "select", options: [["c", "°C"], ["f", "°F"]], def: "c" },
   ],
-  email: [{ k: "max", label: "Messages shown", type: "number", min: 1, max: 20, def: 6 }],
+  email: [
+    { k: "folder", label: "Count mail in", type: "select", options: [["primary", "Primary tab"], ["important", "Important"], ["inbox", "Whole inbox"]], def: "primary" },
+    { k: "max", label: "Messages shown", type: "number", min: 1, max: 20, def: 6 },
+  ],
   news: [
     { k: "feeds", label: "Feeds", type: "list", ph: "one RSS URL per line · blank = Hacker News, BBC World, Ars Technica" },
     { k: "max", label: "Stories shown", type: "number", min: 1, max: 20, def: 10 },

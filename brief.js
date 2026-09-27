@@ -16,7 +16,7 @@ export function facts(widgets) {
       }
       case "weather": { const [now, hl, rain] = w.stats ?? []; return now ? `Weather: ${now.value} ${now.label.toLowerCase()}, high ${hl?.value.split(" / ")[0]}, rain chance ${rain?.value}.` : null; }
       case "calendar": { const n = val(w, "Next"); return `Calendar: ${val(w, "Today")?.value ?? 0} events today${n?.sub ? `, next is ${n.sub} at ${n.value}` : ""}.`; }
-      case "email": return `Inbox: ${val(w, "Unread")?.value ?? 0} unread${d(val(w, "Unread"))}.`;
+      case "email": { const m = w.mail; if (!m) return null; const n = m.recentCapped ? "20 or more" : m.recent; return `Inbox (${m.folder}): ${n} new in the last day${n ? "" : " (nothing new)"}. The total unread count is old mail and not worth mentioning.`; }
       case "github": { const st = val(w, "Stars"), v = w.stats?.find((s) => s.label.startsWith("Views")); return st ? `GitHub: ${st.value} stars${d(st)}${v ? `, ${v.value} views over ${v.label.replace("Views ", "")}${v.sub?.includes("collected") ? " (partial data)" : ""}` : ""}.` : null; }
       case "news": return (w.items ?? []).length ? `Top stories: ${w.items.slice(0, 4).map((i) => i.text).join("; ")}.` : null;
       case "routine": { const r = w.routine; return r?.total ? `Morning routine: ${r.done} of ${r.total} steps done${r.missing.length && !r.complete ? `; still to do: ${r.missing.join(", ")}` : ""}.` : null; }
