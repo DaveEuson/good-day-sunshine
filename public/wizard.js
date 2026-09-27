@@ -92,8 +92,9 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
   async function finish() {
     $w.innerHTML = `<div class="wz-card"><h1>Setting things up…</h1></div>`;
     const slug = existing?.slug ?? (a.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "me");
-    const order = ["attention", "routine", "calendar", "weather", "email", "garden", "news", "github", "youtube", "twitch"];
-    const widgets = order.filter((t) => a.w[t]).map((t) => ({ type: t, ...a.w[t] }));
+    const order = ["attention", "routine", "calendar", "weather", "email", "noticed", "garden", "news", "github", "youtube", "twitch", "credits", "ai"];
+    if (!existing) a.w.noticed ??= {};   // new people get "I noticed"; it stays empty until there is something worth saying
+    const widgets = [...order.filter((t) => a.w[t]), ...Object.keys(a.w).filter((t) => !order.includes(t))].map((t) => ({ ...a.w[t], type: t }));
     if (!widgets.length) widgets.push({ type: "weather", units: "c" }, { type: "news", max: 8 });
     const cfg = { ...(existing ?? {}), name: a.name, character: a.character, theme: a.theme, accent: existing?.accent ?? null, widgets, brief: { enabled: !!a.model || !!a.keys.ANTHROPIC_API_KEY || !models?.ok, tone: a.tone, ...(a.focus ? { focus: a.focus } : {}) }, sound: a.sound, quiet: a.quiet ?? undefined, alarm: a.alarm ?? undefined, display: existing?.display ?? { cycleSec: 12 }, onboarded: true };
     delete cfg.slug;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { todaySummary, isEvening } from "../evening.js";
+import { todaySummary, isEvening, eveningDay } from "../evening.js";
 
 const now = new Date(2026, 8, 27, 20, 0).getTime();   // Sunday 20:00
 const today = "2026-09-27";
@@ -9,7 +9,7 @@ test("evening: recap of the day and first thing tomorrow", () => {
   const garden = { streak: 6, days: { [today]: { focus: 2 } }, plant: { seed: "sprout", lastWater: today } };
   const routine = { total: 5, done: 5, complete: true, missing: [] };
   const widgets = [
-    { type: "calendar", next: { title: "Standup", start: new Date(2026, 8, 28, 9, 0).toISOString() } },
+    { type: "calendar", status: "ok", firstTomorrow: { title: "Standup", start: new Date(2026, 8, 28, 9, 0).toISOString(), allDay: false } },
     { type: "weather", status: "ok", items: [{ text: "Mon · Mostly clear", badge: "27 / 18 · 4%" }] },
   ];
   const s = todaySummary({ garden, routine, cfg: { alarm: { time: "07:00", days: [1, 2, 3, 4, 5] } }, widgets, now });
@@ -40,4 +40,20 @@ test("evening: an untouched routine is neither an achievement nor a nag", () => 
   const s = todaySummary({ garden: { days: {} }, routine: { total: 5, done: 0, complete: false, missing: ["Meds", "Water", "Breakfast", "Stretch", "Pack lunch"] }, cfg: {}, widgets: [], now });
   assert.equal(s.headline, "A quiet day. That counts too.");
   assert.deepEqual(s.todo, []);
+});
+
+test("evening: after midnight the recap is still about the day that is ending", () => {
+  const garden = { streak: 3, days: { [today]: { focus: 1 } }, plant: { seed: "sprout", lastWater: today } };
+  const at0030 = new Date(2026, 8, 28, 0, 30).getTime();
+  const s = todaySummary({ garden, routine: null, cfg: {}, widgets: [], now: eveningDay(at0030) });
+  assert.equal(s.headline, "Today: 1 focus block, plant watered.");
+  assert.deepEqual(s.todo, [], "the plant was watered on the day that is ending");
+  assert.equal(new Date(eveningDay(new Date(2026, 8, 28, 9, 0).getTime())).getDate(), 28, "daytime is untouched");
+});
+
+test("evening: calendar that failed is not reported as an empty tomorrow", () => {
+  const s = todaySummary({ garden: { days: {} }, routine: null, cfg: {}, widgets: [{ type: "calendar", status: "error", error: "401" }], now });
+  assert.equal(s.calendarChecked, false);
+  const ok = todaySummary({ garden: { days: {} }, routine: null, cfg: {}, widgets: [{ type: "calendar", status: "ok", firstTomorrow: { title: "Holiday", start: new Date(2026, 8, 28).toISOString(), allDay: true } }], now });
+  assert.equal(ok.tail, "Tomorrow: Holiday (all day).");
 });

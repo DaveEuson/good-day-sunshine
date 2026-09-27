@@ -5,7 +5,7 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };   // local day, not UTC
   const key = (u) => `gds:wake:${u}:${today()}`;
   const TEST = new URLSearchParams(location.search).get("wake") === "test";
   let testAlarm = null, chimeAt = 0, lastState = "";

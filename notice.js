@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DAY = 86_400_000;
+const localDay = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MILESTONES = [7, 14, 30, 60, 100];
 
@@ -50,7 +51,7 @@ export function computeNotices({ garden, series = [], routine = null, now = Date
     for (const it of routine.items) {
       const byDow = Array.from({ length: 7 }, () => ({ seen: 0, missed: 0 }));
       for (const [d, day] of Object.entries(routine.days ?? {})) {
-        if (now - new Date(d + "T12:00") > 35 * DAY || d === new Date(now).toISOString().slice(0, 10)) continue;
+        if (now - new Date(d + "T12:00") > 35 * DAY || d === localDay(now)) continue;
         if (!Object.values(day.counts ?? {}).some((n) => n > 0)) continue;   // routine not opened that day: no signal
         const w = new Date(d + "T12:00").getDay(); byDow[w].seen++;
         if ((day.counts?.[it.id] ?? 0) < it.target) byDow[w].missed++;
@@ -75,7 +76,7 @@ export function computeNotices({ garden, series = [], routine = null, now = Date
 // Pick what to show today: a stored current pick stays for the day; otherwise the first eligible candidate.
 // Patterns respect the weekly limit and 30-day dismissals; milestones/wins bypass the weekly limit but show once.
 export function pick(cands, st, now = Date.now()) {
-  const today = new Date(now).toISOString().slice(0, 10);
+  const today = localDay(now);
   if (st.current?.date === today) return cands.find((c) => c.id === st.current.id) ?? null;
   const weekly = st.lastShownAt && now - st.lastShownAt < 7 * DAY;
   const c = cands.find((c) => {

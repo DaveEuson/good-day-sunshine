@@ -3,7 +3,7 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const todayKey = () => new Date().toISOString().slice(0, 10);
+  const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };   // local day, not UTC
   const moodKey = (u) => `gds:mood:${u}:${todayKey()}`;
 
   window.getMood = (u) => localStorage.getItem(moodKey(u)) || "";

@@ -40,7 +40,7 @@ An empty install, a profile without `onboarded: true`, `?setup=1`, or "+ New per
 
 ## Your own page
 
-Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sounds, quiet hours, display cycle, the widget list (tick to show, ▲▼ to order, per-widget fields), Ollama URL + models, and API keys. Profile saves to `config/users/<you>.json`; keys and models save to `.env` (mode 600, never sent back to the browser). Keys/profile edits are accepted only from the machine running the server unless `ADMIN_FROM_LAN=1`. Or copy `config/users/_template.json` by hand. Open `?u=<you>` or use the profile picker. Theme/accent overrides from the header picker are saved per profile in the browser only.
+Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sounds, quiet hours, display cycle, the widget list (tick to show, ▲▼ to order, per-widget fields), Ollama URL + models, and API keys. Profile saves to `config/users/<you>.json`; keys and models save to `.env` (mode 600, never sent back to the browser). Keys/profile edits are accepted only from the machine running the server unless `ADMIN_FROM_LAN=1`. Every request must name this machine in its Host header (localhost, its IP addresses or hostname; add others to `ALLOWED_HOSTS`), which blocks DNS-rebinding attacks from web pages, and writes from other sites are refused. Or copy `config/users/_template.json` by hand. Open `?u=<you>` or use the profile picker. Theme/accent overrides from the header picker are saved per profile in the browser only.
 
 ### Widgets
 

@@ -52,8 +52,9 @@ function delta(d, w = 7) {
   return `<span class="delta ${d > 0 ? "up" : "down"}" title="vs ${w} days ago">${d > 0 ? "▲" : "▼"} ${Math.abs(d).toLocaleString()}</span>`;
 }
 const stat = (s) => `<div class="stat"><div class="v">${fmt(s.value)}${delta(s.delta, s.window)}</div><div class="l">${esc(s.label)}</div>${s.sub ? `<div class="s">${esc(s.sub)}</div>` : ""}${spark(s.series)}</div>`;
-const link = (i, cls) => i.url ? `<a class="${cls}" href="${esc(i.url)}" target="_blank" rel="noopener">` : `<span class="${cls}">`;
-const endLink = (i) => (i.url ? "</a>" : "</span>");
+const okUrl = (u) => /^https?:\/\//i.test(String(u ?? ""));   // an RSS <link>javascript:…</link> must not become clickable
+const link = (i, cls) => okUrl(i.url) ? `<a class="${cls}" href="${esc(i.url)}" target="_blank" rel="noopener">` : `<span class="${cls}">`;
+const endLink = (i) => (okUrl(i.url) ? "</a>" : "</span>");
 
 // "07:42" today, "yesterday 22:10", else "Sep 24 07:42"
 function asOf(t) {
@@ -337,7 +338,8 @@ async function openSettings(tab = "you") {
 function fillAI(models) {
   const f = $("#settings-form");
   if (!models) { $("#ai-status").innerHTML = "<b>Couldn’t check models.</b> Is the server running?"; return; }
-  f.OLLAMA_URL.value = models.url;
+  f.OLLAMA_URL.value = models.url; f.OLLAMA_URL.dataset.init = models.url;
+  $("#brief-model").dataset.init = models.brief; $("#chat-model-sel").dataset.init = models.chat;
   aiModels = models;
   f.modelsAll.checked = false;
   $("#brief-model").innerHTML = ""; $("#chat-model-sel").innerHTML = "";   // start from the saved choice, not a cancelled edit
@@ -442,6 +444,7 @@ $("#alarm-clear").onclick = () => { $("#settings-form").alarmTime.value = ""; };
 
 // ---- Widgets: typed fields from the catalog, shown only for widgets that are on
 const getPath = (o, p) => p.split(".").reduce((v, k) => (v == null ? undefined : v[k]), o);
+const delPath = (o, p) => { const ks = p.split("."); const parent = ks.slice(0, -1).reduce((v, k) => (v == null ? undefined : v[k]), o); if (parent) delete parent[ks.at(-1)]; };
 const setPath = (o, p, v) => { const ks = p.split("."); let cur = o; for (const k of ks.slice(0, -1)) cur = cur[k] ??= {}; cur[ks.at(-1)] = v; };
 function fieldHTML(fd, val) {
   const id = `wf-${Math.random().toString(36).slice(2, 8)}`;
@@ -457,7 +460,8 @@ function renderWidgetRows(rows) {
   $("#widget-list").innerHTML = rows.map((w, i) => {
     const c = catalog.find((x) => x.type === w.type) ?? { title: w.type, icon: "•", fields: [] };
     const fields = (c.fields ?? []).map((fd) => fieldHTML(fd, getPath(w, fd.k))).join("");
-    return `<div class="wrow ${w.on ? "on" : ""}" data-type="${esc(w.type)}">
+    const { on, ...orig } = w;
+    return `<div class="wrow ${w.on ? "on" : ""}" data-type="${esc(w.type)}" data-orig="${esc(JSON.stringify(orig))}">
       <div class="wrow-head">
         <label class="check"><input type="checkbox" class="w-on" ${w.on ? "checked" : ""}><span class="icon">${esc(c.icon)}</span><b>${esc(c.title)}</b></label>
         <input class="w-title" value="${esc(w.title ?? "")}" placeholder="rename" aria-label="Rename ${esc(c.title)}" autocomplete="off">
@@ -470,12 +474,16 @@ function renderWidgetRows(rows) {
 function readWidgetRows() {
   return [...document.querySelectorAll("#widget-list .wrow")].map((r) => {
     const type = r.dataset.type, on = r.querySelector(".w-on").checked, title = r.querySelector(".w-title").value.trim();
-    const out = { type, on, ...(title ? { title } : {}) };
+    // Start from the saved widget so settings this tab doesn't show survive; shown fields overwrite, emptied ones are removed.
+    let orig = {};
+    try { orig = JSON.parse(r.dataset.orig || "{}"); } catch {}
+    const out = { ...orig, type, on };
+    if (title) out.title = title; else delete out.title;
     for (const el of r.querySelectorAll("[data-k]")) {
       const raw = el.value.trim();
-      if (!raw) continue;
       const t = el.dataset.type;
-      const v = t === "number" ? Number(raw) : t === "list" ? raw.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean) : t === "select" && /^\d+$/.test(raw) ? Number(raw) : raw;
+      if (!raw) { delPath(out, el.dataset.k); continue; }
+      const v = t === "number" ? Number(raw) : t === "list" ? raw.split(/\n+/).map((s) => s.trim()).filter(Boolean) : t === "select" && /^\d+$/.test(raw) ? Number(raw) : raw;
       if (t === "number" && !Number.isFinite(v)) throw new Error(`${type}: ${el.previousElementSibling?.textContent ?? el.dataset.k} must be a number.`);
       setPath(out, el.dataset.k, v);
     }
@@ -574,7 +582,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
       evening: { from: f.eveningFrom.value || "off" },
       quiet: f.quietStart.value && f.quietEnd.value ? { start: f.quietStart.value, end: f.quietEnd.value } : undefined,
       display: { ...data.config.display, cycleSec: Math.min(120, Math.max(3, +f.cycleSec.value || 12)) },
-      alarm: f.alarmTime.value ? { time: f.alarmTime.value, days, ramp: 10 } : undefined,
+      alarm: f.alarmTime.value ? { ...data.config.alarm, time: f.alarmTime.value, days, ramp: data.config.alarm?.ramp ?? 10 } : undefined,
       widgets,
     };
     const j = await (await fetch(`/api/users/${encodeURIComponent(user)}`, { method: "PUT", body: JSON.stringify(cfg) })).json();
@@ -585,7 +593,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
       const v = f[`env:${k.key}`]?.value.trim() ?? "";
       if (k.secret === false ? v !== (k.value ?? "") : v) envUpd[k.key] = v;
     }
-    for (const k of ["OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]) { const v = f[k]?.value?.trim(); if (v) envUpd[k] = v; }
+    for (const k of ["OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]) { const el = f[k]; const v = el?.value?.trim(); if (v && v !== el.dataset.init) envUpd[k] = v; }
     if (Object.keys(envUpd).length) {
       const er = await (await fetch("/api/env", { method: "PUT", body: JSON.stringify(envUpd) })).json();
       if (er.error) throw new Error(er.error);

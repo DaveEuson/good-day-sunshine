@@ -5,6 +5,13 @@ const dayStr = (t) => { const d = new Date(t); return `${d.getFullYear()}-${Stri
 const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
 const hm = (t) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
+// Before 4 am the evening still belongs to the day that is ending.
+export function eveningDay(now = Date.now()) {
+  const d = new Date(now);
+  if (d.getHours() < 4) d.setDate(d.getDate() - 1), d.setHours(23, 0, 0, 0);
+  return d.getTime();
+}
+
 // garden: raw garden state; routine: routine.today() summary or null; cfg: user config; widgets: dashboard widgets
 export function todaySummary({ garden, routine, cfg, widgets = [], now = Date.now() }) {
   const day = garden?.days?.[dayStr(now)] ?? {};
@@ -19,8 +26,9 @@ export function todaySummary({ garden, routine, cfg, widgets = [], now = Date.no
   // Tomorrow: first calendar event after now (if it is tomorrow), alarm if it rings tomorrow, tomorrow's weather.
   const tomorrow = [];
   const tmr = new Date(now + 86_400_000);
-  const next = widgets.find((w) => w.type === "calendar")?.next;
-  if (next && dayStr(next.start) === dayStr(tmr)) tomorrow.push(`${next.title} at ${hm(next.start)}`);
+  const cal = widgets.find((w) => w.type === "calendar" && w.status === "ok");
+  const first = cal?.firstTomorrow;
+  if (first) tomorrow.push(first.allDay ? `${first.title} (all day)` : `${first.title} at ${hm(first.start)}`);
   const a = cfg?.alarm;
   if (a?.time && (!a.days?.length || a.days.includes(tmr.getDay()))) tomorrow.push(`alarm at ${a.time}`);
   const wx = widgets.find((w) => w.type === "weather" && w.status === "ok")?.items?.[0];
@@ -32,7 +40,7 @@ export function todaySummary({ garden, routine, cfg, widgets = [], now = Date.no
   if (plant && !watered && !plant.ready) todo.push("Water the plant before bed");
   // Only if the routine was started: listing five untouched steps at night is a nag, not a recap.
   if (routine?.done && !routine.complete && routine.missing.length) todo.push(`Still open from this morning: ${routine.missing.join(", ")}`);
-  return { headline, tail, done: doneList, tomorrow, todo, streak: garden?.streak ?? 0 };
+  return { headline, tail, done: doneList, tomorrow, todo, streak: garden?.streak ?? 0, calendarChecked: !!cal };
 }
 
 export function isEvening(cfg, date = new Date()) {

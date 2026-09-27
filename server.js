@@ -12,8 +12,9 @@ import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
 import * as routine from "./routine.js";
-import { todaySummary } from "./evening.js";
+import { todaySummary, eveningDay } from "./evening.js";
 import { createStore } from "./swr.js";
+import { allowedHosts, hostOk, originOk, envValueOk } from "./guard.js";
 
 // Files live next to the source, or next to the exe when packaged as a single executable (scripts/build-exe.ps1).
 const ROOT = process.env.GDS_ROOT || (isSea() ? path.dirname(process.execPath) : path.dirname(fileURLToPath(import.meta.url)));
@@ -36,7 +37,7 @@ function readEnvFile() {
 for (const [k, v] of Object.entries(readEnvFile())) if (!(k in process.env)) process.env[k] = v;
 function writeEnv(updates) {
   const cur = readEnvFile();
-  for (const [k, v] of Object.entries(updates)) { if (v === "" || v == null) delete cur[k]; else cur[k] = String(v); }
+  for (const [k, v] of Object.entries(updates)) { if (v === "" || v == null) delete cur[k]; else if (/[\r\n\0]/.test(String(v))) throw new Error(`${k}: multi-line value refused`); else cur[k] = String(v); }
   fs.writeFileSync(ENV_FILE, Object.entries(cur).map(([k, v]) => `${k}=${v}`).join("\n") + "\n", { mode: 0o600 });
   for (const [k, v] of Object.entries(updates)) { if (v === "" || v == null) delete process.env[k]; else process.env[k] = String(v); }
 }
@@ -111,7 +112,11 @@ async function body(req) { let b = ""; for await (const c of req) b += c; return
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml" };
 
+const HOSTS = allowedHosts((env.ALLOWED_HOSTS || "").split(",").map((s) => s.trim()).filter(Boolean));
 http.createServer(async (req, res) => {
+  // DNS rebinding / cross-site requests: the Host must be this machine, and writes must come from this page.
+  if (!hostOk(req.headers.host, HOSTS)) { res.writeHead(421, { "Content-Type": "text/plain" }); return res.end("Unknown host. Add it to ALLOWED_HOSTS in .env if this is yours."); }
+  if (!originOk(req.method, req.headers.origin, req.headers.host)) { res.writeHead(403, { "Content-Type": "text/plain" }); return res.end("Cross-site request refused."); }
   const url = new URL(req.url, `http://${req.headers.host}`);
   const user = safeName(url.searchParams.get("u") || "dave");
 
@@ -122,7 +127,9 @@ http.createServer(async (req, res) => {
       const force = url.searchParams.has("refresh");
       if (force) cache.clear();
       const widgets = await Promise.all(cfg.widgets.map((w, i) => runWidget(w, i, user, force)));
-      const today = todaySummary({ garden: gardens.load(user), routine: widgets.find((w) => w.type === "routine")?.routine ?? null, cfg, widgets });
+      const eveNow = eveningDay(Date.now());
+      const rw = cfg.widgets.find((w) => w.type === "routine");
+      const today = todaySummary({ garden: gardens.load(user), routine: rw ? routine.today(routines.load(user), routine.parseItems(rw.items ?? []), eveNow) : null, cfg, widgets, now: eveNow });
       return json(res, 200, { today, user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
     }
 
@@ -137,6 +144,7 @@ http.createServer(async (req, res) => {
         date: new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
         widgets: widgets.filter((w) => w.stats?.length).map((w) => ({ title: w.title, stats: w.stats.map(({ label, value, delta }) => ({ label, value, delta })) })),
         attention: widgets.flatMap((w) => w.attention ?? []).map((a) => a.text),
+        unavailable: widgets.filter((w) => w.status === "error").map((w) => `${w.title}: couldn’t check (${w.error})`),
         headlines: widgets.filter((w) => w.type === "news").flatMap((w) => w.items ?? []).map((i) => i.text),
         garden: widgets.find((w) => w.type === "garden")?.garden && (({ tokens, streak, plantView }) => ({ tokens, streak, plant: plantView && `${plantView.art} ${plantView.name}` }))(widgets.find((w) => w.type === "garden").garden),
       });
@@ -150,7 +158,7 @@ http.createServer(async (req, res) => {
     }
 
     // Admin surface: only from this machine unless ADMIN_FROM_LAN=1.
-    if (url.pathname === "/api/env" || url.pathname === "/api/models" || (req.method === "PUT" && url.pathname.startsWith("/api/users/"))) {
+    if (url.pathname === "/api/env" || url.pathname === "/api/models" || url.pathname === "/api/lan" || (req.method === "PUT" && url.pathname.startsWith("/api/users/"))) {
       if (!isLocal(req)) return json(res, 403, { error: "Settings can only be changed from the machine running the server (or set ADMIN_FROM_LAN=1)." });
     }
     // This machine's addresses for other screens (Pi, TV): real LAN adapters first, VPN (Tailscale 100.x) after, virtual ones skipped.
@@ -169,6 +177,7 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/api/env" && req.method === "PUT") {
       const updates = await body(req);
       const allowed = new Set([...KEYS.map((k) => k.key), "OLLAMA_URL", "OLLAMA_MODEL", "CHAT_MODEL"]);
+      for (const [k, v] of Object.entries(updates)) if (!envValueOk(v)) return json(res, 400, { error: `${k}: must be a single line of text.` });
       // picking a claude-* model without a key is a dead end; say so before writing
       for (const k of ["OLLAMA_MODEL", "CHAT_MODEL"]) {
         if (/^claude-/.test(updates[k] || "") && !(updates.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY)) return json(res, 400, { error: `${updates[k]} needs an Anthropic API key (Keys section).` });

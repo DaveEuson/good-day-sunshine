@@ -55,3 +55,11 @@ test("notices: a routine step skipped on one weekday (the design's breakfast exa
   assert.equal(r.nudge.text, "Breakfast");
   assert.ok(!n.some((x) => x.id.startsWith("routine-meds")), "a step you always do is never flagged");
 });
+
+test("pick: the day rolls over at local midnight, not UTC", () => {
+  const st = fresh();
+  const cands = [{ id: "a", kind: "milestone" }, { id: "b", kind: "milestone" }];
+  const evening = new Date(2026, 8, 24, 23, 30).getTime(), later = new Date(2026, 8, 24, 23, 59).getTime();
+  assert.equal(pick(cands, st, evening).id, "a");
+  assert.equal(pick(cands, st, later).id, "a", "same local day keeps the same notice");
+});

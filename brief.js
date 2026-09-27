@@ -50,7 +50,7 @@ async function eveningBrief(input, env, timeoutMs) {
   const lines = [
     `Done today: ${today.done.length ? today.done.join(", ") : "nothing tracked"}.`,
     today.todo.length ? `Still open: ${today.todo.join("; ")}.` : "",
-    today.tomorrow.length ? `Tomorrow: ${today.tomorrow.join("; ")}.` : "Tomorrow: nothing on the calendar.",
+    today.tomorrow.length ? `Tomorrow: ${today.tomorrow.join("; ")}.` : today.calendarChecked ? "Tomorrow: nothing on the calendar." : "",
     `Check-in streak: ${today.streak} days.`,
     ...widgets.filter((w) => w.status === "error").map((w) => `${w.title}: could not be checked (${w.error}).`),
   ].filter(Boolean).join("\n");

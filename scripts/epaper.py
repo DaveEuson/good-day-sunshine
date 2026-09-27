@@ -37,6 +37,8 @@ for w in s["widgets"]:
         if y > 300: break
 y = max(y + 56, 320)
 d.line((16, y - 8, W - 16, y - 8), fill=0)
+for line in s.get("unavailable", [])[:2]:
+    d.text((16, y), "? " + line[:70], font=small, fill=0); y += 20
 for line in s["attention"][:4]:
     d.text((16, y), "! " + line[:70], font=small, fill=0); y += 20
 for line in s["headlines"][:3]:

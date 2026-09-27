@@ -77,8 +77,11 @@ export async function fetchData(cfg, env) {
     ? e.start.toLocaleDateString(undefined, { weekday: "short" }) + " · all day"
     : e.start.toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
 
+  const tmr = new Date(now); tmr.setDate(tmr.getDate() + 1);
+  const ft = all.find((e) => e.start.toDateString() === tmr.toDateString());
   return {
     next: next ? { title: next.title ?? "(untitled)", start: next.start.toISOString() } : null,
+    firstTomorrow: ft ? { title: ft.title ?? "(untitled)", start: ft.start.toISOString(), allDay: !!ft.allDay } : null,
     stats: [
       { label: "Today", value: today.length },
       { label: "Next", value: next ? next.start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "—", sub: next?.title },

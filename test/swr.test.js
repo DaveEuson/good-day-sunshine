@@ -52,3 +52,15 @@ test("swr: a failed refresh replaces old data with an error, and force waits", a
   t = 301;
   assert.deepEqual((await s.get("k", async () => ({ unread: 1 }))).value, { error: "401 rejected" }, "error is stored, not the old numbers");
 });
+
+test("swr: clear() beats a refresh that was already running (a key saved mid-refresh)", async () => {
+  const s = createStore(tmp(), { ttl: 60_000 });
+  let release;
+  const slowOld = () => new Promise((res) => { release = () => res({ used: "old key" }); });
+  const pending = s.get("k", slowOld);
+  s.clear();
+  const fresh = await s.get("k", async () => ({ used: "new key" }), { force: true });
+  release(); await pending;
+  assert.deepEqual(fresh.value, { used: "new key" });
+  assert.deepEqual((await s.get("k", async () => ({ used: "x" }))).value, { used: "new key" }, "the old result was not stored");
+});
