@@ -95,6 +95,15 @@
             <p class="help">The screen brightens over 10 minutes before this time, then a soft chime. <a href="?wake=test" target="_blank">Try it (12 s)</a></p>
           </div>
         </div>
+        <div class="set-row"><span class="lbl">Evening recap</span>
+          <div>
+            <div class="chips-pick" id="evening-pick" role="radiogroup" aria-label="Evening recap from">
+              <button type="button" data-e="off">Off</button><button type="button" data-e="17:00">from 17:00</button><button type="button" data-e="18:00">18:00</button><button type="button" data-e="19:00">19:00</button><button type="button" data-e="20:00">20:00</button>
+            </div>
+            <input type="hidden" name="eveningFrom">
+            <p class="help">In the evening the top of the page shows what got done today and what is first tomorrow. <a href="?evening=1" target="_blank">See it now</a></p>
+          </div>
+        </div>
         <div class="set-row"><span class="lbl">Sounds</span><label class="check"><input type="checkbox" name="sound"> chimes and garden sounds</label></div>
       </section>
 

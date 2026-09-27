@@ -482,3 +482,7 @@ body.small .grid > .widget.active { min-height: 200px; }
 .rt:disabled { opacity: .6; }
 .rt-foot { margin: 0; font-size: 14px; color: var(--accent); font-weight: 600; }
 .routine.complete { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+
+/* evening */
+.chip.todo { border-style: dashed; color: var(--accent); border-color: var(--accent); }
+body.evening .ask-chips button[data-ask^="What should I do first"] { display: none; }

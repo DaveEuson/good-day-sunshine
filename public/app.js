@@ -201,7 +201,8 @@ async function loadBrief() {
   if (!data.brief?.enabled) { $("#brief").hidden = true; return; }
   $("#brief").hidden = false;
   const seq = ++briefSeq;
-  const payload = { widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus, mood: getMood(user) };
+  const evening = isEvening(data.config);
+  const payload = { widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus, mood: evening ? "" : getMood(user), evening, today: evening ? data.today : undefined };
   const post = (extra) => fetch("/api/brief", { method: "POST", body: JSON.stringify({ ...payload, ...extra }) }).then((r) => r.json());
   const show = (j) => {
     if (seq !== briefSeq) return;
@@ -304,6 +305,7 @@ async function openSettings(tab = "you") {
   f.alarmTime.value = cfg.alarm?.time ?? "";
   for (const c of f.querySelectorAll("[name=alarmDay]")) c.checked = (cfg.alarm?.days ?? [1, 2, 3, 4, 5]).includes(+c.value);
   f.sound.checked = !!cfg.sound;
+  setEvening(cfg.evening?.from ?? "17:00");
 
   // Display
   setQuiet(cfg.quiet ? `${cfg.quiet.start}-${cfg.quiet.end}` : "");
@@ -373,6 +375,13 @@ function renderModelPickers() {
   $("#chat-model-sel").innerHTML = build(keep($("#chat-model-sel"), m.chat));
 }
 $("#settings-form").modelsAll.addEventListener("change", renderModelPickers);
+
+// ---- Morning tab: evening recap start
+function setEvening(v) {
+  $("#settings-form").eveningFrom.value = v;
+  for (const b of $("#evening-pick").querySelectorAll("[data-e]")) b.setAttribute("aria-checked", String(b.dataset.e === v));
+}
+$("#evening-pick").addEventListener("click", (e) => { const b = e.target.closest("[data-e]"); if (b) setEvening(b.dataset.e); });
 
 // ---- Display: quiet-hours and card-time presets, addresses for other screens
 function setQuiet(v) {
@@ -562,6 +571,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
       accent: f.accentOn.checked ? f.accentPick.value : null,
       brief: { ...data.config.brief, enabled: f.briefEnabled.checked, tone: f.tone.value },
       sound: f.sound.checked,
+      evening: { from: f.eveningFrom.value || "off" },
       quiet: f.quietStart.value && f.quietEnd.value ? { start: f.quietStart.value, end: f.quietEnd.value } : undefined,
       display: { ...data.config.display, cycleSec: Math.min(120, Math.max(3, +f.cycleSec.value || 12)) },
       alarm: f.alarmTime.value ? { time: f.alarmTime.value, days, ramp: 10 } : undefined,

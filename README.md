@@ -83,6 +83,10 @@ Top of the page answers one question: what matters this morning. A character fac
 
 Under the headline: one input plus quick chips (What first? · Summarize the news · Draft my standup · What changed?). Anything typed opens the chat drawer with the answer streaming from your chat model.
 
+## Evening
+
+From 17:00 (Options → Morning → Evening recap: Off, 17:00–20:00) until 4 am, the top of the page turns into a recap: **what got done today** (morning routine, focus blocks, plant watered) and **what is first tomorrow** (first calendar event, alarm if it rings, weather). A day with nothing tracked reads "A quiet day. That counts too." Only things you can still do tonight become chips ("Water the plant before bed", open routine steps if you started it). The brief writes a two-sentence end-of-day note instead of the morning brief, and the mood row asks "How was today?". `?evening=1` shows it any time. Logic in `evening.js`.
+
 ## Instant start
 
 Widget results are kept in `data/cache.json`. After a restart the page shows the last known data at once (each card marked "as of 07:42", status "updating…") while fresh fetches run on the server; the page checks back every 3 s and swaps them in. Fresh data is reused for 5 minutes (`CACHE_TTL_MS`); saved data older than a day isn't shown. A refresh that fails replaces the old numbers with the error, so saved data never hides a broken source. `?refresh=1` and saving Options always fetch fresh. `GDS_TIMING=1` logs how long each widget's fetch takes.

@@ -68,6 +68,45 @@
   }
   setInterval(tickRing, 15_000);
 
+  // Evening from cfg.evening.from (default 17:00) until 4 am. ?evening=1 forces it for a look.
+  window.isEvening = (cfg, d = new Date()) => {
+    if (new URLSearchParams(location.search).has("evening")) return true;
+    const from = cfg?.evening?.from ?? "17:00";
+    if (!from || from === "off") return false;
+    const [h, m] = from.split(":").map(Number);
+    return d.getHours() * 60 + d.getMinutes() >= h * 60 + m || d.getHours() < 4;
+  };
+  const EVE_MOODS = [["great", "Good"], ["okay", "Fine"], ["meh", "Meh"], ["rough", "Hard"]];
+  const EVE_ACK = { great: "Good. Keep that.", okay: "Fine is enough.", meh: "Noted. Tomorrow is new.", rough: "Noted. Be kind to yourself tonight." };
+  const eveKey = (u) => `gds:eve:${u}:${todayKey()}`;
+  function renderEvening(data, user, onMood, a) {
+    const cfg = data.config, t = THEMES[document.documentElement.dataset.theme] ?? {}, d = data.today;
+    const mood = localStorage.getItem(eveKey(user)) || "";
+    const face = faceURI(cfg.character || "sun", a.broken.length > 0 || a.high.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
+    const chips = [
+      a.broken.length ? `<span class="chip alert">${esc(a.broken.map((w) => w.title).join(", "))} can’t connect</span>` : "",
+      a.high.length ? `<span class="chip alert">${a.high.length} urgent</span>` : "",
+      ...d.tomorrow.slice(d.tail ? 1 : 0).map((x) => `<span class="chip">Tomorrow · ${esc(x)}</span>`),
+      ...d.todo.map((x) => `<span class="chip todo">${esc(x)}</span>`),
+    ].join("");
+    $("#hero-block").innerHTML = `
+      <img class="face" src="${face}" alt="" width="92" height="92">
+      <div class="hero-main">
+        <div class="greeting">Good evening, ${esc(cfg.name)}.</div>
+        <h1 class="answer"><b>${esc(d.headline)}</b> <span>${esc(d.tail)}</span></h1>
+        <div class="chips">${chips}</div>
+        <div class="mood">${mood ? `<span class="muted">${EVE_ACK[mood]}</span>` : `<span class="muted">How was today?</span>`}${EVE_MOODS.map(([id, l]) => `<button class="pill ${mood === id ? "on" : ""}" data-eve="${id}">${l}</button>`).join("")}</div>
+      </div>`;
+    $("#hero-block").onclick = (e) => {
+      const b = e.target.closest("[data-eve]");
+      if (!b) return;
+      if (mood === b.dataset.eve) localStorage.removeItem(eveKey(user)); else localStorage.setItem(eveKey(user), b.dataset.eve);
+      onMood?.();
+    };
+    document.body.classList.add("evening");
+    return a;
+  }
+
   window.renderHero = function renderHero(data, user, onMood) {
     const ws = data.widgets;
     const cfg = data.config;
@@ -76,6 +115,8 @@
     ringNext = next && new Date(next.start) > Date.now() ? next : null;
     const a = answer(ws, ringNext);
     const t = THEMES[document.documentElement.dataset.theme] ?? {};
+    document.body.classList.remove("evening");
+    if (data.today && isEvening(cfg) && !wakeState(user).startsWith("snooze:")) return renderEvening(data, user, onMood, a);
     if (wakeState(user).startsWith("snooze:")) {
       const face0 = faceURI(cfg.character || "sun", false, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff");
       const wx = ws.find((w) => w.type === "weather" && w.stats);

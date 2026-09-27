@@ -12,6 +12,7 @@ import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
 import * as routine from "./routine.js";
+import { todaySummary } from "./evening.js";
 import { createStore } from "./swr.js";
 
 // Files live next to the source, or next to the exe when packaged as a single executable (scripts/build-exe.ps1).
@@ -121,7 +122,8 @@ http.createServer(async (req, res) => {
       const force = url.searchParams.has("refresh");
       if (force) cache.clear();
       const widgets = await Promise.all(cfg.widgets.map((w, i) => runWidget(w, i, user, force)));
-      return json(res, 200, { user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
+      const today = todaySummary({ garden: gardens.load(user), routine: widgets.find((w) => w.type === "routine")?.routine ?? null, cfg, widgets });
+      return json(res, 200, { today, user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
     }
 
     // Compact text-ish view for microcontrollers / e-paper / TTS. No HTML needed.
@@ -202,7 +204,7 @@ http.createServer(async (req, res) => {
     // a normal call waits up to BRIEF_TIMEOUT_MS for the model. Only model answers are cached.
     if (url.pathname === "/api/brief" && req.method === "POST") {
       const input = await body(req);
-      const key = `brief:${input.name}:${input.mood ?? ""}:${JSON.stringify(input.widgets).length}`;
+      const key = `brief:${input.name}:${input.mood ?? ""}:${input.evening ? "eve" : "am"}:${JSON.stringify(input.widgets).length}:${JSON.stringify(input.today ?? "").length}`;
       const hit = cache.get(key);
       if (hit && Date.now() - hit.at < TTL) return json(res, 200, { ...hit.value, cached: true });
       if (input.fast) return json(res, 200, { text: fallback(input), fromModel: false, pending: true });
