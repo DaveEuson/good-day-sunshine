@@ -73,6 +73,7 @@
         <div class="set-row"><label for="set-accent">Accent colour</label>
           <div class="inline"><input id="set-accent" name="accentPick" type="color"><label class="check"><input type="checkbox" name="accentOn"> use my own colour</label></div>
         </div>
+      <div class="set-row"><span class="lbl">Setup</span><div class="inline"><a class="btn-link" href="?setup=1">Run the wake-up questions again</a></div></div>
       </section>
 
       <section data-panel="morning" role="tabpanel" hidden>
@@ -120,17 +121,28 @@
       </section>
 
       <section data-panel="display" role="tabpanel" hidden>
-        <div class="set-row"><label for="set-qs">Quiet hours</label>
+        <div class="set-row"><span class="lbl">Quiet hours</span>
           <div>
-            <div class="inline"><input id="set-qs" name="quietStart" type="time"><span>to</span><input name="quietEnd" type="time" aria-label="Quiet hours end"><button type="button" class="ghost sm" id="quiet-clear">Off</button></div>
-            <p class="help">The screen goes dark with a dim clock. Tap it to wake for 3 minutes.</p>
+            <div class="chips-pick" id="quiet-pick" role="radiogroup" aria-label="Quiet hours">
+              <button type="button" data-q="">Off</button><button type="button" data-q="22:00-07:00">22:00 – 07:00</button><button type="button" data-q="23:00-06:00">23:00 – 06:00</button><button type="button" data-q="00:00-08:00">00:00 – 08:00</button><button type="button" data-q="custom">Custom</button>
+            </div>
+            <div class="inline" id="quiet-custom" hidden><input name="quietStart" type="time" aria-label="Quiet hours start"><span>to</span><input name="quietEnd" type="time" aria-label="Quiet hours end"></div>
+            <p class="help">The screen goes dark with a dim clock. Tap it to wake for 3 minutes. A wake-up alarm still comes through.</p>
           </div>
         </div>
-        <div class="set-row"><label for="set-cycle">Small screen</label>
-          <div class="inline"><span>show each card for</span><input id="set-cycle" name="cycleSec" type="number" min="3" max="120" class="num"><span>seconds</span></div>
+        <div class="set-row"><span class="lbl">Small screen</span>
+          <div>
+            <div class="chips-pick" id="cycle-pick" role="radiogroup" aria-label="Seconds per card">
+              <button type="button" data-c="5">5 s</button><button type="button" data-c="10">10 s</button><button type="button" data-c="20">20 s</button><button type="button" data-c="30">30 s</button><button type="button" data-c="60">1 min</button>
+            </div>
+            <input type="hidden" name="cycleSec">
+            <p class="help">How long each card stays up on a small panel before the next one. Tap the panel to skip ahead.</p>
+          </div>
         </div>
-        <div class="set-row"><span class="lbl">Open as</span>
-          <div class="inline wrap"><a class="btn-link" href="?mode=tv" target="_blank">TV / big screen</a><a class="btn-link" href="?mode=small" target="_blank">Small panel</a><a class="btn-link" href="?setup=1">Run setup again</a></div>
+        <div class="set-row"><span class="lbl">Other screens</span>
+          <div id="screens">
+            <p class="help">Loading this computer’s address…</p>
+          </div>
         </div>
       </section>
     </div>

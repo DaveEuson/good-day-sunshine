@@ -451,3 +451,15 @@ body.small .grid > .widget.active { min-height: 200px; }
 .key-off summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 .key-off[open] summary { margin-bottom: 12px; }
 .key-off .key-group { margin-top: 12px; }
+
+/* display tab: preset chips, copy rows; narrow inputs win over the generic full-width rule */
+.settings .inline input[type=time] { width: 130px; }
+.settings input.num { width: 90px; }
+.chips-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips-pick button { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; font-size: 14px; cursor: pointer; min-height: 38px; }
+.chips-pick button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+#quiet-custom { margin-top: 10px; }
+.copy-row { display: grid; grid-template-columns: 160px 1fr auto auto; gap: 8px; align-items: center; margin-top: 8px; }
+.copy-lbl { font-size: 13px; color: var(--muted); }
+.copy-row code { font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
+@media (max-width: 640px) { .copy-row { grid-template-columns: 1fr auto; } .copy-lbl { grid-column: 1 / -1; } }

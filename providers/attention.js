@@ -9,7 +9,7 @@ const htmlUrl = (n) => {
 };
 
 export async function fetchData(cfg, env) {
-  const tok = token(env);
+  const tok = await token(env);
   if (!tok) return { setup: "Set GitHub token in ⚙ Options → Keys, or run gh auth login." };
 
   // Any failed source is an error for the whole card: a swallowed failure would read as "nothing needs you".

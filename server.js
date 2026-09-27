@@ -1,6 +1,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { isSea } from "node:sea";
 import { providers, OPTION_FIELDS, KEYS } from "./providers/index.js";
@@ -83,7 +84,9 @@ async function runWidget(w, i, user) {
   const hkey = `${user}:${w.key ?? w.type}`;
   try {
     const data = await cached(`${user}:${JSON.stringify(w)}`, async () => {
+      const t0 = Date.now();
       const d = await p.fetchData(w, env, { history });
+      if (env.GDS_TIMING) console.log(`[timing] ${w.type} ${Date.now() - t0}ms`);
       if (d.stats && !d.error && !d.setup) history.record(hkey, d.stats);
       return d;
     });
@@ -143,6 +146,16 @@ http.createServer(async (req, res) => {
     // Admin surface: only from this machine unless ADMIN_FROM_LAN=1.
     if (url.pathname === "/api/env" || url.pathname === "/api/models" || (req.method === "PUT" && url.pathname.startsWith("/api/users/"))) {
       if (!isLocal(req)) return json(res, 403, { error: "Settings can only be changed from the machine running the server (or set ADMIN_FROM_LAN=1)." });
+    }
+    // This machine's addresses for other screens (Pi, TV): real LAN adapters first, VPN (Tailscale 100.x) after, virtual ones skipped.
+    if (url.pathname === "/api/lan") {
+      const out = [];
+      for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
+        if (/vEthernet|WSL|Hyper-V|VirtualBox|VMware|Docker|Loopback|br-|veth/i.test(name)) continue;
+        for (const a of addrs ?? []) if (a.family === "IPv4" && !a.internal && !a.address.startsWith("169.254.")) out.push({ name, address: a.address, vpn: /tailscale/i.test(name) || a.address.startsWith("100.") });
+      }
+      out.sort((x, y) => x.vpn - y.vpn);
+      return json(res, 200, { port: PORT, addresses: out });
     }
     if (url.pathname === "/api/env" && req.method === "GET") {
       return json(res, 200, KEYS.map((k) => ({ ...k, set: !!env[k.key], value: k.secret === false ? env[k.key] ?? "" : undefined })));

@@ -1,11 +1,16 @@
-import { execSync } from "node:child_process";
+import { execFile } from "node:child_process";
 
 const API = "https://api.github.com";
 
-export function token(env) {
+// GITHUB_TOKEN, else the `gh` CLI's token. Looked up once, asynchronously: a blocking `gh auth token` per call
+// froze the whole server for ~1 s every time a GitHub widget refreshed.
+let ghToken = null;
+export async function token(env) {
   if (env.GITHUB_TOKEN) return env.GITHUB_TOKEN;
-  try { return execSync("gh auth token", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); }
-  catch { return null; }
+  ghToken ??= new Promise((resolve) => execFile("gh", ["auth", "token"], { timeout: 5000, windowsHide: true }, (err, out) => resolve(err ? null : out.trim() || null)));
+  const t = await ghToken;
+  if (!t) ghToken = null;   // gh not logged in yet: try again next time
+  return t;
 }
 
 export async function gh(path, tok) {
@@ -22,7 +27,7 @@ export const meta = { title: "GitHub", icon: "⌥" };
 // GitHub's traffic API only returns the last 14 days, so each day's views are stored (ctx.history) and
 // summed over the window; longer windows fill in as days are collected.
 export async function fetchData(cfg, env, ctx = {}) {
-  const tok = token(env);
+  const tok = await token(env);
   const user = cfg.user;
   if (!user) return { setup: "Add your GitHub login to the GitHub widget in ⚙ Options." };
   const window = Math.max(1, Math.min(90, +cfg.window || 14));

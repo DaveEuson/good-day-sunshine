@@ -222,6 +222,7 @@ $("#chat-form").onsubmit = async (e) => {
 // ---------- options menu ----------
 $("#settings-toggle").onclick = () => openSettings();
 let keyMeta = [];
+let settingsSeq = 0;
 const keyClear = new Set();
 
 // ---- tabs
@@ -234,10 +235,13 @@ $("#settings .set-tabs").addEventListener("click", (e) => { const t = e.target.c
 const setMsg = (text, bad = false) => { const m = $("#settings-msg"); m.textContent = text; m.classList.toggle("bad", bad); };
 
 async function openSettings(tab = "you") {
-  const [cat, envInfo, models] = await Promise.all([
+  // The model check can take seconds on a cold start (one Ollama call per installed model), so it
+  // fills the AI tab when it lands instead of holding the dialog closed.
+  const seq = ++settingsSeq;
+  const modelsP = fetch("/api/models").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const [cat, envInfo] = await Promise.all([
     catalog.length ? catalog : fetch("/api/catalog").then((r) => r.json()),
     fetch("/api/env").then((r) => (r.ok ? r.json() : null)),
-    fetch("/api/models").then((r) => (r.ok ? r.json() : null)),
   ]);
   catalog = cat;
   const cfg = data.config;
@@ -263,29 +267,21 @@ async function openSettings(tab = "you") {
   f.sound.checked = !!cfg.sound;
 
   // Display
-  f.quietStart.value = cfg.quiet?.start ?? ""; f.quietEnd.value = cfg.quiet?.end ?? "";
-  f.cycleSec.value = cfg.display?.cycleSec ?? 12;
+  setQuiet(cfg.quiet ? `${cfg.quiet.start}-${cfg.quiet.end}` : "");
+  setCycle(cfg.display?.cycleSec ?? 10);
+  renderScreens();
 
   // Widgets
   const rows = [...cfg.widgets.map((w) => ({ ...w, on: true })), ...catalog.filter((c) => !cfg.widgets.some((w) => w.type === c.type)).map((c) => ({ type: c.type, on: false }))];
   renderWidgetRows(rows);
 
   // AI
-  if (models) {
-    f.OLLAMA_URL.value = models.url;
-    aiModels = models;
-    f.modelsAll.checked = false;
-    $("#brief-model").innerHTML = ""; $("#chat-model-sel").innerHTML = "";   // start from the saved choice, not a cancelled edit
-    renderModelPickers();
-    const hidden = (models.installed ?? []).filter((m) => !m.fit);
-    const cloud = models.cloud?.length ? `Sends dashboard data to ${[...new Set(models.cloud)].join(" and ")}.` : "Nothing leaves this machine.";
-    $("#ai-status").innerHTML = `<b>${models.installed?.length ? `${models.local} of ${models.installed.length} installed models can write your brief` : "Ollama isn’t reachable"}</b>${models.claude ? " · Claude ready" : ""}${models.openrouter ? " · OpenRouter ready" : ""}<br>${esc(cloud)}`;
-    $("#ai-status").classList.toggle("cloud", !!models.cloud?.length);
-    const byWhy = {};
-    for (const m of hidden) (byWhy[m.why.replace(/ \(.*\)$/, "")] ??= []).push(m.name);
-    $("#models-hidden").innerHTML = hidden.length ? `${hidden.length} hidden because they can’t write a brief:<br>${Object.entries(byWhy).map(([why, names]) => `<b>${esc(why)}</b>: ${esc(names.join(", "))}`).join("<br>")}` : "";
-    $("#models-all-row").hidden = !hidden.length;
-  }
+  aiModels = null;
+  f.modelsAll.checked = false;
+  for (const s of [$("#brief-model"), $("#chat-model-sel")]) s.innerHTML = `<option value="">checking models…</option>`;
+  $("#ai-status").innerHTML = "<b>Checking which models are installed…</b>";
+  $("#models-hidden").innerHTML = ""; $("#models-all-row").hidden = true;
+  modelsP.then((m) => { if (seq === settingsSeq) fillAI(m); });
 
   // Keys
   keyMeta = envInfo ?? [];
@@ -295,6 +291,24 @@ async function openSettings(tab = "you") {
 
   showTab(tab);
   if (!$("#settings").open) $("#settings").showModal();
+}
+
+function fillAI(models) {
+  const f = $("#settings-form");
+  if (!models) { $("#ai-status").innerHTML = "<b>Couldn’t check models.</b> Is the server running?"; return; }
+  f.OLLAMA_URL.value = models.url;
+  aiModels = models;
+  f.modelsAll.checked = false;
+  $("#brief-model").innerHTML = ""; $("#chat-model-sel").innerHTML = "";   // start from the saved choice, not a cancelled edit
+  renderModelPickers();
+  const hidden = (models.installed ?? []).filter((m) => !m.fit);
+  const cloud = models.cloud?.length ? `Sends dashboard data to ${[...new Set(models.cloud)].join(" and ")}.` : "Nothing leaves this machine.";
+  $("#ai-status").innerHTML = `<b>${models.installed?.length ? `${models.local} of ${models.installed.length} installed models can write your brief` : "Ollama isn’t reachable"}</b>${models.claude ? " · Claude ready" : ""}${models.openrouter ? " · OpenRouter ready" : ""}<br>${esc(cloud)}`;
+  $("#ai-status").classList.toggle("cloud", !!models.cloud?.length);
+  const byWhy = {};
+  for (const m of hidden) (byWhy[m.why.replace(/ \(.*\)$/, "")] ??= []).push(m.name);
+  $("#models-hidden").innerHTML = hidden.length ? `${hidden.length} hidden because they can’t write a brief:<br>${Object.entries(byWhy).map(([why, names]) => `<b>${esc(why)}</b>: ${esc(names.join(", "))}`).join("<br>")}` : "";
+  $("#models-all-row").hidden = !hidden.length;
 }
 
 // ---- AI: model pickers. Local = installed models that can write (largest first); "show all" adds the rest.
@@ -321,6 +335,49 @@ function renderModelPickers() {
 }
 $("#settings-form").modelsAll.addEventListener("change", renderModelPickers);
 
+// ---- Display: quiet-hours and card-time presets, addresses for other screens
+function setQuiet(v) {
+  const f = $("#settings-form");
+  const presets = [...$("#quiet-pick").querySelectorAll("[data-q]")].map((b) => b.dataset.q);
+  const pick = v === "custom" || (v && !presets.includes(v)) ? "custom" : v;
+  if (pick !== "custom") { const [s, e] = v ? v.split("-") : ["", ""]; f.quietStart.value = s; f.quietEnd.value = e; }
+  else if (v && v !== "custom") { const [s, e] = v.split("-"); f.quietStart.value = s; f.quietEnd.value = e; }
+  for (const b of $("#quiet-pick").querySelectorAll("[data-q]")) b.setAttribute("aria-checked", String(b.dataset.q === pick));
+  $("#quiet-custom").hidden = pick !== "custom";
+  if (pick === "custom" && !f.quietStart.value) { f.quietStart.value = "22:30"; f.quietEnd.value = "06:30"; }
+}
+function setCycle(n) {
+  $("#settings-form").cycleSec.value = n;
+  for (const b of $("#cycle-pick").querySelectorAll("[data-c]")) b.setAttribute("aria-checked", String(+b.dataset.c === +n));
+}
+$("#quiet-pick").addEventListener("click", (e) => { const b = e.target.closest("[data-q]"); if (b) setQuiet(b.dataset.q); });
+$("#cycle-pick").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) setCycle(+b.dataset.c); });
+
+async function renderScreens() {
+  const box = $("#screens");
+  let lan;
+  try { lan = await (await fetch("/api/lan")).json(); } catch { box.innerHTML = `<p class="help">Couldn’t read this computer’s address.</p>`; return; }
+  const addrs = lan.addresses ?? [];
+  if (!addrs.length) { box.innerHTML = `<p class="help">This computer isn’t on a network right now.</p>`; return; }
+  const q = user !== "dave" ? `u=${encodeURIComponent(user)}&` : "";
+  const main = addrs[0], base = `http://${main.address}:${lan.port}/`;
+  const rows = [
+    ["TV or big screen", `${base}?${q}mode=tv`],
+    ["Small panel", `${base}?${q}mode=small`],
+    ["Raspberry Pi kiosk command", `~/good-day-sunshine/scripts/kiosk.sh http://${main.address}:${lan.port} small ${user}`],
+  ];
+  box.innerHTML = `<p class="help top">Open these on another device on the same network as this computer (${esc(main.address)}).</p>
+    ${rows.map(([label, v], i) => `<div class="copy-row"><span class="copy-lbl">${esc(label)}</span><code>${esc(v)}</code><button type="button" class="ghost sm" data-copy="${esc(v)}">Copy</button>${i < 2 ? `<a class="link sm" href="${esc(v.replace(main.address, "localhost"))}" target="_blank">preview</a>` : ""}</div>`).join("")}
+    ${addrs.length > 1 ? `<p class="help">Also reachable at ${addrs.slice(1).map((a) => `${esc(a.address)}${a.vpn ? " (VPN)" : ""}`).join(", ")}.</p>` : ""}
+    <p class="help">If the other screen can’t connect, Windows may be blocking port ${lan.port}. See “Displays” in the README for the one-line firewall rule.</p>`;
+}
+$("#screens").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied"; } catch { b.textContent = "Select it"; }
+  setTimeout(() => { b.textContent = "Copy"; }, 1500);
+});
+
 // ---- You: character picker with the real faces
 function renderCharacters(cur) {
   const f = $("#settings-form");
@@ -334,7 +391,6 @@ $("#char-pick").addEventListener("click", (e) => { const b = e.target.closest("[
 $("#settings-form").accentOn.addEventListener("change", (e) => { e.target.form.accentPick.disabled = !e.target.checked; });
 $("#settings-theme").addEventListener("change", (e) => { const f = e.target.form; if (!f.accentOn.checked) f.accentPick.value = THEMES[e.target.value]?.accent ?? f.accentPick.value; });
 $("#alarm-clear").onclick = () => { $("#settings-form").alarmTime.value = ""; };
-$("#quiet-clear").onclick = () => { const f = $("#settings-form"); f.quietStart.value = ""; f.quietEnd.value = ""; };
 
 // ---- Widgets: typed fields from the catalog, shown only for widgets that are on
 const getPath = (o, p) => p.split(".").reduce((v, k) => (v == null ? undefined : v[k]), o);

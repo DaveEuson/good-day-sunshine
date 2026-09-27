@@ -124,6 +124,14 @@ Check in once a day → 10 tokens + streak bonus (up to +20). Come back ≥1 h l
 | Small always-on panel (3–7") | `?mode=small` — one card at a time, cycles every `display.cycleSec` (options menu), tap to advance. |
 | Night | Set quiet hours in options. Screen goes black with a dim clock; tap to wake for 3 min. A black LCD still backlights, so for true dark put the panel on DPMS/`vcgencmd display_power 0` from cron. |
 
+### Other screens can't connect (Windows firewall)
+
+Options → Display → Other screens shows this computer's address and copyable links. If another device gets no answer, Windows is usually blocking the port on a Private network. In PowerShell run as administrator:
+
+```powershell
+New-NetFirewallRule -DisplayName "Good Day Sunshine (LAN)" -Direction Inbound -Protocol TCP -LocalPort 4242 -Profile Private -RemoteAddress LocalSubnet -Action Allow
+```
+
 ### Raspberry Pi 5 / Jetson (HDMI display)
 
 ```bash
