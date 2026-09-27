@@ -11,6 +11,7 @@ import { CLAUDE_MODELS, openrouterModels, ollamaModels, provider } from "./ai.js
 import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
+import { createStore } from "./swr.js";
 
 // Files live next to the source, or next to the exe when packaged as a single executable (scripts/build-exe.ps1).
 const ROOT = process.env.GDS_ROOT || (isSea() ? path.dirname(process.execPath) : path.dirname(fileURLToPath(import.meta.url)));
@@ -52,15 +53,11 @@ function noticeCandidates(user) {
   return notice.computeNotices({ garden: g, series: history.series(`${user}:attention`, "Notifications") });
 }
 
-const cache = new Map(); // key → { at, value }
-async function cached(key, fn) {
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL) return hit.value;
-  const value = await fn();
-  cache.set(key, { at: Date.now(), value });
-  return value;
-}
+// Widget data: served instantly from memory or disk (marked stale when old) while a refresh runs; see swr.js.
+const widgetCache = createStore(path.join(DATA, "cache.json"), { ttl: TTL });
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { widgetCache.flush(); process.exit(0); });
 
+const cache = new Map(); // brief text etc.: key → { at, value }
 const safeName = (name) => String(name || "dave").replace(/[^a-z0-9_-]/gi, "");
 function loadUser(name) {
   const p = path.join(USERS, `${safeName(name)}.json`);
@@ -68,7 +65,7 @@ function loadUser(name) {
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
-async function runWidget(w, i, user) {
+async function runWidget(w, i, user, force = false) {
   const base = { id: i, type: w.type, title: w.title ?? w.type };
   if (w.type === "garden") return { ...base, status: "ok", title: w.title ?? "Garden", icon: "❀", garden: garden.view(gardens.save(user, garden.checkin(gardens.load(user)))) };
   if (w.type === "noticed") {
@@ -83,14 +80,14 @@ async function runWidget(w, i, user) {
   if (!p) return { ...base, status: "error", error: `Unknown widget type "${w.type}".` };
   const hkey = `${user}:${w.key ?? w.type}`;
   try {
-    const data = await cached(`${user}:${JSON.stringify(w)}`, async () => {
+    const { value: data, at, stale } = await widgetCache.get(`${user}:${JSON.stringify(w)}`, async () => {
       const t0 = Date.now();
       const d = await p.fetchData(w, env, { history });
       if (env.GDS_TIMING) console.log(`[timing] ${w.type} ${Date.now() - t0}ms`);
       if (d.stats && !d.error && !d.setup) history.record(hkey, d.stats);
       return d;
-    });
-    const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data };
+    }, { force });
+    const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data, asOf: at, ...(stale ? { stale: true } : {}) };
     out.status = data.setup ? "setup" : data.error ? "error" : "ok";
     if (out.status !== "ok") { delete out.stats; delete out.items; delete out.attention; } // never ship numbers from a failed check
     else if (out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);
@@ -116,9 +113,10 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/api/dashboard") {
       const cfg = loadUser(user);
       if (!cfg) return json(res, 404, { error: `No config/users/${user}.json` });
-      if (url.searchParams.has("refresh")) cache.clear();
-      const widgets = await Promise.all(cfg.widgets.map((w, i) => runWidget(w, i, user)));
-      return json(res, 200, { user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
+      const force = url.searchParams.has("refresh");
+      if (force) cache.clear();
+      const widgets = await Promise.all(cfg.widgets.map((w, i) => runWidget(w, i, user, force)));
+      return json(res, 200, { user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
     }
 
     // Compact text-ish view for microcontrollers / e-paper / TTS. No HTML needed.
@@ -170,7 +168,7 @@ http.createServer(async (req, res) => {
       }
       for (const k of Object.keys(updates)) if (!allowed.has(k)) return json(res, 400, { error: `Not a settable key: ${k}` });
       writeEnv(updates);
-      cache.clear();
+      cache.clear(); widgetCache.clear();
       return json(res, 200, { ok: true });
     }
     if (url.pathname === "/api/models") {
@@ -190,7 +188,7 @@ http.createServer(async (req, res) => {
       const bad = cfg.widgets.find((w) => !["garden", "noticed"].includes(w.type) && !providers[w.type]);
       if (bad) return json(res, 400, { error: `Unknown widget type "${bad.type}".` });
       fs.writeFileSync(path.join(USERS, `${safeName(um[1])}.json`), JSON.stringify(cfg, null, 2) + "\n");
-      cache.clear();
+      cache.clear(); widgetCache.clear();
       return json(res, 200, { ok: true });
     }
 

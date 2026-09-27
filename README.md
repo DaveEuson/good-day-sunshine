@@ -82,6 +82,10 @@ Top of the page answers one question: what matters this morning. A character fac
 
 Under the headline: one input plus quick chips (What first? · Summarize the news · Draft my standup · What changed?). Anything typed opens the chat drawer with the answer streaming from your chat model.
 
+## Instant start
+
+Widget results are kept in `data/cache.json`. After a restart the page shows the last known data at once (each card marked "as of 07:42", status "updating…") while fresh fetches run on the server; the page checks back every 3 s and swaps them in. Fresh data is reused for 5 minutes (`CACHE_TTL_MS`); saved data older than a day isn't shown. A refresh that fails replaces the old numbers with the error, so saved data never hides a broken source. `?refresh=1` and saving Options always fetch fresh. `GDS_TIMING=1` logs how long each widget's fetch takes.
+
 ## Honest status
 
 Every widget reports `status: ok | error | setup`. A failed check ships no numbers, writes no history, keeps its card in the grid with the error and a Fix keys button, and is named in the headline ("Heads up: Inbox can’t connect.") and the brief. The page never claims all clear while a source is broken.

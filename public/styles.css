@@ -463,3 +463,6 @@ body.small .grid > .widget.active { min-height: 200px; }
 .copy-lbl { font-size: 13px; color: var(--muted); }
 .copy-row code { font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
 @media (max-width: 640px) { .copy-row { grid-template-columns: 1fr auto; } .copy-lbl { grid-column: 1 / -1; } }
+
+/* stale card label (saved data shown while fresh data loads) */
+.widget h2 .asof { margin-left: auto; font-family: ui-monospace, Consolas, monospace; font-size: 10px; letter-spacing: .08em; text-transform: none; font-weight: 400; color: var(--muted); padding: 2px 7px; border: 1px dashed var(--border); border-radius: 999px; animation: gds-pulse 2.4s infinite; }

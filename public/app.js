@@ -55,6 +55,14 @@ const stat = (s) => `<div class="stat"><div class="v">${fmt(s.value)}${delta(s.d
 const link = (i, cls) => i.url ? `<a class="${cls}" href="${esc(i.url)}" target="_blank" rel="noopener">` : `<span class="${cls}">`;
 const endLink = (i) => (i.url ? "</a>" : "</span>");
 
+// "07:42" today, "yesterday 22:10", else "Sep 24 07:42"
+function asOf(t) {
+  if (!t) return "earlier";
+  const d = new Date(t), now = new Date(), hm = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return hm;
+  if (d.toDateString() === new Date(now - 86_400_000).toDateString()) return `yesterday ${hm}`;
+  return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${hm}`;
+}
 function widget(w) {
   if (w.type === "garden") return gardenCard(w);
   if (w.type === "noticed") return noticedCard(w);
@@ -71,7 +79,7 @@ function widget(w) {
     if (w.items?.length)
       body += `<ul class="items">${w.items.map((i) => `<li><span class="ti">${link(i, "t")}${esc(i.text)}${endLink(i)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}</span>${i.badge ? `<span class="b">${esc(i.badge)}</span>` : ""}</li>`).join("")}</ul>`;
   }
-  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}</h2>${body}</section>`;
+  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}${w.stale ? `<span class="asof" title="Saved from last time. Fresh data is on its way.">as of ${esc(asOf(w.asOf))}</span>` : ""}</h2>${body}</section>`;
 }
 
 // ---------- I noticed ----------
@@ -592,6 +600,7 @@ let lastHigh = null;
 function wizard(existing) {
   runWizard({ existing, onDone: (slug) => { localStorage.setItem("ld:user", slug); location.href = `/?u=${slug}`; } });
 }
+let staleTimer = null, staleTries = 0;
 async function load(refresh = false) {
   $("#status").textContent = "Loading…";
   const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}`);
@@ -619,7 +628,11 @@ async function load(refresh = false) {
   $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
   $("#setup-strip").innerHTML = [broken.length ? `<span class="err">⚠ ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
   $("#setup-go")?.addEventListener("click", () => openSettings("keys"));
-  $("#status").textContent = `Updated ${new Date().toLocaleTimeString()}`;
+  $("#status").textContent = data.stale ? `Showing saved data for ${data.stale} card${data.stale === 1 ? "" : "s"} · updating…` : `Updated ${new Date().toLocaleTimeString()}`;
+  // Saved data came back instantly; fresh fetches are running on the server. Check again shortly, a few times.
+  clearTimeout(staleTimer);
+  if (data.stale && staleTries < 10) { staleTries++; staleTimer = setTimeout(() => load(), 3000); }
+  else if (!data.stale) staleTries = 0;
   $("#mode-hint").textContent = MODE ? `· ${MODE} mode` : "";
   const high = data.widgets.flatMap((w) => w.attention ?? []).filter((a) => a.level === "high").length;
   if (lastHigh != null && high > lastHigh) SFX.alert();
