@@ -11,6 +11,7 @@ import { CLAUDE_MODELS, openrouterModels, ollamaModels, provider } from "./ai.js
 import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
+import * as routine from "./routine.js";
 import { createStore } from "./swr.js";
 
 // Files live next to the source, or next to the exe when packaged as a single executable (scripts/build-exe.ps1).
@@ -47,10 +48,13 @@ const TTL = +(env.CACHE_TTL_MS || 5 * 60_000);
 const history = openHistory(path.join(DATA, "history.jsonl"));
 const gardens = garden.store(path.join(DATA, "garden"));
 const notices = notice.store(path.join(DATA, "notices"));
+const routines = routine.store(path.join(DATA, "routine"));
+const routineItems = (user) => routine.parseItems(loadUser(user)?.widgets.find((w) => w.type === "routine")?.items ?? []);
 
 function noticeCandidates(user) {
   const g = gardens.load(user);
-  return notice.computeNotices({ garden: g, series: history.series(`${user}:attention`, "Notifications") });
+  const hasRoutine = loadUser(user)?.widgets.some((w) => w.type === "routine");
+  return notice.computeNotices({ garden: g, series: history.series(`${user}:attention`, "Notifications"), routine: hasRoutine ? { items: routineItems(user), days: routines.load(user).days } : null });
 }
 
 // Widget data: served instantly from memory or disk (marked stale when old) while a refresh runs; see swr.js.
@@ -68,6 +72,7 @@ function loadUser(name) {
 async function runWidget(w, i, user, force = false) {
   const base = { id: i, type: w.type, title: w.title ?? w.type };
   if (w.type === "garden") return { ...base, status: "ok", title: w.title ?? "Garden", icon: "❀", garden: garden.view(gardens.save(user, garden.checkin(gardens.load(user)))) };
+  if (w.type === "routine") return { ...base, status: "ok", title: w.title ?? "Morning routine", icon: "✓", routine: routine.today(routines.load(user), routine.parseItems(w.items ?? [])) };
   if (w.type === "noticed") {
     const st = notices.load(user);
     const cands = noticeCandidates(user);
@@ -137,7 +142,8 @@ http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/catalog") {
       const cat = Object.entries(providers).map(([type, p]) => ({ type, title: p.meta.title, icon: p.meta.icon, fields: OPTION_FIELDS[type] ?? [] }));
-      cat.splice(4, 0, { type: "garden", title: "Garden", icon: "❀", fields: [] }, { type: "noticed", title: "I noticed", icon: "✦", fields: [] });
+      cat.splice(1, 0, { type: "routine", title: "Morning routine", icon: "✓", fields: OPTION_FIELDS.routine });
+      cat.splice(5, 0, { type: "garden", title: "Garden", icon: "❀", fields: [] }, { type: "noticed", title: "I noticed", icon: "✦", fields: [] });
       return json(res, 200, cat);
     }
 
@@ -185,7 +191,7 @@ http.createServer(async (req, res) => {
     if (um && req.method === "PUT") {
       const cfg = await body(req);
       if (typeof cfg.name !== "string" || !Array.isArray(cfg.widgets)) return json(res, 400, { error: "Need name and widgets[]." });
-      const bad = cfg.widgets.find((w) => !["garden", "noticed"].includes(w.type) && !providers[w.type]);
+      const bad = cfg.widgets.find((w) => !["garden", "noticed", "routine"].includes(w.type) && !providers[w.type]);
       if (bad) return json(res, 400, { error: `Unknown widget type "${bad.type}".` });
       fs.writeFileSync(path.join(USERS, `${safeName(um[1])}.json`), JSON.stringify(cfg, null, 2) + "\n");
       cache.clear(); widgetCache.clear();
@@ -211,6 +217,17 @@ http.createServer(async (req, res) => {
       try { for await (const text of stream) res.write(JSON.stringify({ message: { content: text } }) + "\n"); }
       catch (e) { res.write(JSON.stringify({ message: { content: `\n[${e.message}]` } }) + "\n"); }
       return res.end();
+    }
+
+    if (url.pathname === "/api/routine/tap" && req.method === "POST") {
+      const { id } = await body(req);
+      const st = routines.load(user);
+      let r;
+      try { r = routine.tap(st, routineItems(user), id); } catch (e) { return json(res, 400, { error: e.message }); }
+      routines.save(user, st);
+      let g = null;
+      if (r.firstComplete) g = garden.view(gardens.save(user, garden.routineDone(gardens.load(user))));
+      return json(res, 200, { routine: r.summary, firstComplete: r.firstComplete, garden: g });
     }
 
     const nm = url.pathname.match(/^\/api\/notice\/(yes|no|ok|forget)$/);

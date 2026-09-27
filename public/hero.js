@@ -36,6 +36,8 @@
   function chips(ws, a) {
     const out = [];
     if (a.high.length) out.push(`<span class="chip alert">${a.high.length} urgent</span>`);
+    const rt = ws.find((w) => w.type === "routine")?.routine;
+    if (rt?.total && !rt.complete) out.push(`<span class="chip">Routine ${rt.done} of ${rt.total}</span>`);
     const mail = ws.find((w) => w.type === "email" && w.stats);
     if (mail) out.push(`<span class="chip">${mail.stats[0].value} unread</span>`);
     const cal = ws.find((w) => w.type === "calendar" && w.stats);

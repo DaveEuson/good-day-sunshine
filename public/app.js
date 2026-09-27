@@ -66,6 +66,7 @@ function asOf(t) {
 function widget(w) {
   if (w.type === "garden") return gardenCard(w);
   if (w.type === "noticed") return noticedCard(w);
+  if (w.type === "routine") return routineCard(w);
   const urgent = w.attention?.some((a) => a.level === "high");
   const cls = ["card", "widget", w.setup ? "dim" : "", w.error ? "broken" : "", urgent ? "alert" : ""].join(" ");
   let body = "";
@@ -81,6 +82,36 @@ function widget(w) {
   }
   return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}${w.stale ? `<span class="asof" title="Saved from last time. Fresh data is on its way.">as of ${esc(asOf(w.asOf))}</span>` : ""}</h2>${body}</section>`;
 }
+
+// ---------- Morning routine ----------
+function routineCard(w) {
+  const r = w.routine;
+  const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
+  const rows = r.rows.map((it) => {
+    const counter = it.target > 1;
+    const meta = counter ? `${it.count} of ${it.target}${it.note ? " " + it.note : ""}` : it.note;
+    return `<li><button type="button" class="rt ${it.done ? "done" : ""}" data-rt="${esc(it.id)}" aria-pressed="${it.done}">
+      <span class="rt-box">${counter && !it.done && it.count ? it.count : it.done ? "✓" : ""}</span><span class="rt-label">${esc(it.label)}</span>${meta ? `<span class="rt-meta">${esc(meta)}</span>` : ""}</button></li>`;
+  }).join("");
+  const foot = r.complete ? `<p class="rt-foot">All done. That’s the morning handled.</p>` : "";
+  return `<section class="card widget routine ${r.complete ? "complete" : ""}" data-wid="${w.id}" data-type="routine">
+    <h2><span class="icon">✓</span>${esc(w.title)}<span class="when">${r.done} of ${r.total}</span></h2>
+    <div class="rt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.total}" aria-valuenow="${r.done}"><i style="width:${pct}%"></i></div>
+    <ul class="rt-list">${rows}</ul>${foot}</section>`;
+}
+$("#grid").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-rt]");
+  if (!b) return;
+  b.disabled = true;
+  const j = await fetch(`/api/routine/tap?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: b.dataset.rt }) }).then((r) => r.json()).catch(() => ({ error: "Couldn’t save that." }));
+  if (j.error) { toast(j.error); b.disabled = false; return; }
+  const w = data.widgets.find((x) => x.type === "routine");
+  w.routine = j.routine;
+  b.closest(".routine").outerHTML = routineCard(w);
+  if (j.garden) { const g = data.widgets.find((x) => x.type === "garden"); if (g) { g.garden = j.garden; const card = document.querySelector("#grid .garden"); if (card) card.outerHTML = gardenCard(g); } toast("Morning routine done. +5 tokens"); SFX.harvest?.(); }
+  else SFX.tap?.();
+  renderHero(data, user, () => { renderHero(data, user); loadBrief(); });
+});
 
 // ---------- I noticed ----------
 function noticedCard(w) {

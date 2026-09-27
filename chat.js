@@ -5,6 +5,7 @@ function context(widgets) {
   return (widgets ?? []).map((w) => {
     if (w.status === "setup") return `${w.title}: not set up`;
     if (w.status === "error") return `${w.title}: could not be checked (${w.error})`;
+    if (w.type === "routine" && w.routine) return `## ${w.title}\n${w.routine.done} of ${w.routine.total} done${w.routine.missing.length ? `; not yet: ${w.routine.missing.join(", ")}` : ""}`;
     const stats = (w.stats ?? []).map((s) => `${s.label}=${s.value}${s.delta != null ? ` (${s.delta >= 0 ? "+" : ""}${s.delta} vs ${s.window ?? 7}d ago)` : ""}`).join(", ");
     const items = [...(w.attention ?? []), ...(w.items ?? [])].slice(0, 10).map((i) => `- ${i.text}${i.badge ? ` [${i.badge}]` : ""}${i.sub ? ` · ${i.sub}` : ""}`).join("\n");
     return `## ${w.title}\n${stats}\n${items}`;

@@ -51,6 +51,7 @@ Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sound
 | `weather` | `city` or `lat`/`lon`, `units` (`c`/`f`) | nothing |
 | `email` | `user`, `max` | `GMAIL_USER` + `GMAIL_APP_PASSWORD` (Google → Security → 2-Step → App passwords) |
 | `news` | `feeds` [urls], `perFeed`, `max` | nothing. Default: HN front page, BBC World, Ars Technica |
+| `routine` | `items` (one per line) | nothing |
 | `garden` | – | nothing |
 | `ai` | – | nothing. Local AI status: Ollama up/down, loaded models + VRAM, GPU use via `nvidia-smi` if present, which provider answers brief and chat, and whether anything leaves the machine |
 | `credits` | `budget` {anthropic, openai} USD/month | AI credits: Anthropic month-to-date spend (`ANTHROPIC_ADMIN_KEY`, org accounts), OpenAI month-to-date (`OPENAI_ADMIN_KEY`), OpenRouter credits left (`OPENROUTER_API_KEY`, exact with a management key), DeepSeek balance (`DEEPSEEK_API_KEY`). Budgets give "left" and a heads-up under 10%. A provider that fails shows "couldn’t check", never $0 |
@@ -93,6 +94,10 @@ Every widget reports `status: ok | error | setup`. A failed check ships no numbe
 ## Wake-up ramp
 
 Set an alarm time and weekdays in Options (or in the wizard). Ten minutes before, the screen fades up from black: a huge clock, the face fading in, the greeting at the halfway point, a soft chime at the time. **Snooze 9 min** goes back to black and returns fully lit; the page then opens on the short version (three lines: what needs you, what's next, one small thing) with a Full brief button. **I'm up** ends it for the day. Nobody comes for an hour → it stops. `?wake=test` runs the whole ramp in 12 seconds. Quiet hours yield to the ramp.
+
+## Morning routine
+
+A short checklist card, from the design: Meds (with food), Water ×4, Breakfast, Stretch, Pack lunch by default. Change the steps on the Widgets tab, one per line: add `x4` for a counter (Water x4) and ` · note` for a hint (Meds · with food). Tap to tick; counters count up and wrap. Resets every morning. Finishing the whole routine earns +5 garden tokens once a day. The hero shows "Routine 2 of 5" until it is done, the brief mentions what is left, and "I noticed" spots a step you keep skipping on one weekday ("You've skipped breakfast 3 Mondays running") and offers a nudge. State: `data/routine/<user>.json`.
 
 ## I noticed
 

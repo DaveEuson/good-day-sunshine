@@ -40,3 +40,18 @@ test("pick: one pattern a week, milestones bypass, dismiss holds 30 days, yes st
   assert.equal(pick(cands, st, tomorrow + DAY), null);
   assert.equal(pick(cands, st, now + 8 * DAY).id, "notif-1", "next pattern after a week");
 });
+
+test("notices: a routine step skipped on one weekday (the design's breakfast example)", () => {
+  const items = [{ id: "meds", label: "Meds", target: 1 }, { id: "breakfast", label: "Breakfast", target: 1 }];
+  const days = {};
+  for (let i = 1; i <= 28; i++) {
+    const t = now - i * DAY, d = new Date(t).toISOString().slice(0, 10), mon = new Date(d + "T12:00").getDay() === 1;
+    days[d] = { counts: { meds: 1, breakfast: mon ? 0 : 1 } };
+  }
+  const n = computeNotices({ garden: { streak: 2, days: {} }, series: [], routine: { items, days }, now });
+  const r = n.find((x) => x.id.startsWith("routine-breakfast-1"));
+  assert.ok(r, n.map((x) => x.id).join());
+  assert.match(r.text, /skipped breakfast \d Mondays running/);
+  assert.equal(r.nudge.text, "Breakfast");
+  assert.ok(!n.some((x) => x.id.startsWith("routine-meds")), "a step you always do is never flagged");
+});

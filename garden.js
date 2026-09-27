@@ -110,6 +110,14 @@ export function focus(s, now = Date.now()) {
   return s;
 }
 
+// Finished the whole morning routine (called by the server once a day, not a user action).
+export function routineDone(s, now = Date.now()) {
+  s.tokens += 5;
+  mark(s, now, "routine");
+  note(s, "Morning routine done · +5");
+  return s;
+}
+
 export const ACTIONS = { water, harvest, focus, plant: (s, b) => plant(s, b.seed), buy: (s, b) => buy(s, b.kind, b.id) };
 
 export function store(dir) {

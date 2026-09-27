@@ -8,7 +8,7 @@ const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "
 const MILESTONES = [7, 14, 30, 60, 100];
 
 // Candidate notices, best first. `garden` is the raw garden state, `series` = [{t, v}] of GitHub notification counts.
-export function computeNotices({ garden, series = [], now = Date.now() }) {
+export function computeNotices({ garden, series = [], routine = null, now = Date.now() }) {
   const out = [];
   const days = garden?.days ?? {};
   const dates = Object.keys(days).sort();
@@ -41,6 +41,27 @@ export function computeNotices({ garden, series = [], now = Date.now() }) {
     const median = rest[Math.floor(rest.length / 2)];
     if (top.avg >= 5 && top.avg >= 2 * Math.max(median, 1)) {
       out.push({ id: `notif-${top.i}`, kind: "pattern", text: `GitHub notifications pile up on ${DOW[top.i]}s: about ${Math.round(top.avg)}, against ${Math.round(median)} on other days.`, why: `Notification counts recorded on this page over the last four weeks, averaged by weekday.`, nudge: { day: top.i, time: "08:30", text: "Clear GitHub notifications first" }, ask: `Want a nudge at 8:30 on ${DOW[top.i]}s to clear them before they stack?` });
+    }
+  }
+
+  // 3b. A routine step skipped on one weekday (the day was used, that step wasn't), ≥3 times, other weekdays fine.
+  //     routine = { items: [{id,label,target}], days: { "YYYY-MM-DD": { counts } } }
+  if (routine?.items?.length) {
+    for (const it of routine.items) {
+      const byDow = Array.from({ length: 7 }, () => ({ seen: 0, missed: 0 }));
+      for (const [d, day] of Object.entries(routine.days ?? {})) {
+        if (now - new Date(d + "T12:00") > 35 * DAY || d === new Date(now).toISOString().slice(0, 10)) continue;
+        if (!Object.values(day.counts ?? {}).some((n) => n > 0)) continue;   // routine not opened that day: no signal
+        const w = new Date(d + "T12:00").getDay(); byDow[w].seen++;
+        if ((day.counts?.[it.id] ?? 0) < it.target) byDow[w].missed++;
+      }
+      const bad = byDow.map((x, i) => ({ ...x, i })).filter((x) => x.seen >= 3 && x.missed >= 3 && x.missed / x.seen >= 0.75).sort((a, b) => b.missed - a.missed)[0];
+      if (!bad) continue;
+      const others = byDow.filter((x, i) => i !== bad.i && x.seen);
+      if (!others.length || !others.every((x) => x.missed / x.seen <= 0.34)) continue;
+      const what = it.label.toLowerCase();
+      out.push({ id: `routine-${it.id}-${bad.i}`, kind: "pattern", text: `You've skipped ${what} ${bad.missed} ${DOW[bad.i]}s running. Every other day you've done it.`, why: `Your morning routine ticks for the last five weeks: ${it.label} missing on ${bad.missed} of ${bad.seen} ${DOW[bad.i]}s, almost never on other days.`, nudge: { day: bad.i, time: "07:40", text: it.label }, ask: `Want a nudge at 7:40 on ${DOW[bad.i]}s?` });
+      break;
     }
   }
 

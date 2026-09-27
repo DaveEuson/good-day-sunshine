@@ -43,6 +43,7 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
     { q: "Want the weather?", render: () => yesno(on("weather")), read: yn("weather", { units: "c" }) },
     { when: () => on("weather"), q: "Where are you?", sub: "City name. Leave it blank and I'll guess from your network.", render: () => text("wz-in", "San Diego", a.w.weather?.city) + `<div class="wz-row">${choices([["°C", "c"], ["°F", "f"]], a.w.weather?.units ?? "c")}</div>`, read: () => { const c = v("#wz-in").trim(); a.w.weather = { ...(c ? { city: c } : {}), units: picked() || "c" }; } },
 
+    { q: "Want a short morning checklist?", sub: "Meds, water, breakfast, a stretch, pack lunch. Tick as you go; change the steps later in Options.", render: () => yesno(on("routine") || !existing), read: yn("routine") },
     { q: "A few headlines with your coffee?", sub: "Hacker News, BBC, Ars by default. Change the feeds later in Options.", render: () => yesno(on("news")), read: yn("news", { max: 8 }) },
     { q: "Want a little plant to water every day?", sub: "Checking in earns tokens. Tokens unlock seeds and themes.", render: () => yesno(on("garden")), read: yn("garden") },
 
@@ -91,7 +92,7 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
   async function finish() {
     $w.innerHTML = `<div class="wz-card"><h1>Setting things up…</h1></div>`;
     const slug = existing?.slug ?? (a.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "me");
-    const order = ["attention", "calendar", "weather", "email", "garden", "news", "github", "youtube", "twitch"];
+    const order = ["attention", "routine", "calendar", "weather", "email", "garden", "news", "github", "youtube", "twitch"];
     const widgets = order.filter((t) => a.w[t]).map((t) => ({ type: t, ...a.w[t] }));
     if (!widgets.length) widgets.push({ type: "weather", units: "c" }, { type: "news", max: 8 });
     const cfg = { ...(existing ?? {}), name: a.name, character: a.character, theme: a.theme, accent: existing?.accent ?? null, widgets, brief: { enabled: !!a.model || !!a.keys.ANTHROPIC_API_KEY || !models?.ok, tone: a.tone, ...(a.focus ? { focus: a.focus } : {}) }, sound: a.sound, quiet: a.quiet ?? undefined, alarm: a.alarm ?? undefined, display: existing?.display ?? { cycleSec: 12 }, onboarded: true };

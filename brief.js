@@ -19,6 +19,7 @@ export function facts(widgets) {
       case "email": return `Inbox: ${val(w, "Unread")?.value ?? 0} unread${d(val(w, "Unread"))}.`;
       case "github": { const st = val(w, "Stars"), v = w.stats?.find((s) => s.label.startsWith("Views")); return st ? `GitHub: ${st.value} stars${d(st)}${v ? `, ${v.value} views over ${v.label.replace("Views ", "")}${v.sub?.includes("collected") ? " (partial data)" : ""}` : ""}.` : null; }
       case "news": return (w.items ?? []).length ? `Top stories: ${w.items.slice(0, 4).map((i) => i.text).join("; ")}.` : null;
+      case "routine": { const r = w.routine; return r?.total ? `Morning routine: ${r.done} of ${r.total} steps done${r.missing.length && !r.complete ? `; still to do: ${r.missing.join(", ")}` : ""}.` : null; }
       case "garden": { const p = w.garden?.plantView; return p ? `Garden: the ${p.name.toLowerCase()} ${p.wateredToday ? "has been watered today" : "has not been watered yet today"}${p.wilted ? " and is wilting" : ""}. Check-in streak: ${w.garden.streak} days in a row.` : null; }
       default: return (w.stats ?? []).length ? `${w.title}: ${w.stats.map((s) => `${s.label.toLowerCase()} ${s.value}${d(s)}`).join(", ")}.` : null;
     }

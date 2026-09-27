@@ -67,4 +67,5 @@ export const OPTION_FIELDS = {
   ai: [],
   garden: [],
   noticed: [],
+  routine: [{ k: "items", label: "Steps", type: "list", ph: "one per line · add x4 for a counter (Water x4) · add “ · note” for a hint (Meds · with food) · blank = Meds, Water x4, Breakfast, Stretch, Pack lunch" }],
 };
