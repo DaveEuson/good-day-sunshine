@@ -131,7 +131,8 @@ export const ACTIONS = {
 // Repair state written by that bug: invalid dates become "never", so watering and focus work again.
 export function repair(s) {
   const bad = (d) => typeof d === "string" && d.includes("NaN");
-  if (s.plant && bad(s.plant.lastWater)) s.plant.lastWater = null;
+  // Treat a broken date as "watered yesterday": the person was trying to water it, so it must not wilt for our bug.
+  if (s.plant && bad(s.plant.lastWater)) s.plant.lastWater = dayStr(Date.now() - 86_400_000);
   if (s.plant && bad(s.plant.plantedAt)) s.plant.plantedAt = dayStr(Date.now());
   if (bad(s.focusDay)) { s.focusDay = null; s.focusToday = 0; }
   for (const k of Object.keys(s.days ?? {})) if (bad(k)) delete s.days[k];

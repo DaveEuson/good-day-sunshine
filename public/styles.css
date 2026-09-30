@@ -527,3 +527,34 @@ body.phone .chat-form input { font-size: 16px; }   /* 16 px stops iOS zooming in
 .starters { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: auto; }
 .starters p { margin: 0 0 2px; font-size: 14px; }
 .starters button { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 10px 16px; font: inherit; font-size: 15px; cursor: pointer; min-height: 44px; }
+
+/* ===== companion: the character leads the page ===== */
+.hero { grid-template-columns: 1fr auto; grid-template-areas: "buddy ring" "status status"; row-gap: 14px; }
+.hero .buddy { grid-area: buddy; display: grid; grid-template-columns: 112px 1fr; gap: 16px; align-items: start; min-width: 0; }
+.hero .countdown { grid-area: ring; align-self: start; }
+.hero .status { grid-area: status; }
+.hero .status .answer { font-size: clamp(20px, 2.2vw, 28px); }
+.hero .face.big { width: 112px; height: 112px; filter: drop-shadow(0 8px 18px rgba(0,0,0,.12)); animation: gds-bob 5s ease-in-out infinite; }
+@keyframes gds-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.speech { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 14px 18px 14px; box-shadow: var(--shadow); max-width: 640px; animation: gds-rise .25s ease-out; }
+.speech::before { content: ""; position: absolute; left: -9px; top: 28px; width: 16px; height: 16px; background: var(--card); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: rotate(45deg); }
+.speech .who { font-family: ui-monospace, Consolas, monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.speech .say { margin: 0; font-size: 19px; line-height: 1.4; }
+.speech .ack { color: var(--muted); }
+.c-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.c-btn { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); border-radius: 12px; padding: 9px 16px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; min-height: 42px; }
+.c-btn.ghost { background: var(--bg); color: var(--text); border-color: var(--border); font-weight: 500; }
+.c-btn:disabled { opacity: .5; }
+.c-more, .c-skip { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.c-more span { font-family: ui-monospace, Consolas, monospace; font-size: 11px; margin-left: 6px; text-decoration: none; }
+body.phone .hero { grid-template-columns: 1fr; grid-template-areas: "buddy" "ring" "status"; }
+body.phone .hero .buddy { grid-template-columns: 64px 1fr; gap: 10px; }
+body.phone .hero .face.big { width: 64px; height: 64px; }
+body.phone .speech .say { font-size: 17px; }
+body.phone .speech::before { top: 20px; }
+body.tv .speech .c-actions, body.tv .c-more, body.tv .c-skip { display: none; }
+body.tv .speech .say { font-size: 30px; }
+body.tv .hero .buddy { grid-template-columns: 150px 1fr; } body.tv .hero .face.big { width: 150px; height: 150px; }
+body.small .hero .buddy { grid-template-columns: 56px 1fr; gap: 10px; } body.small .hero .face.big { width: 56px; height: 56px; display: block; }
+body.small .speech .say { font-size: 16px; } body.small .c-more { display: none; } body.small .hero .status .chips { display: none; }
+@media (prefers-reduced-motion: reduce) { .hero .face.big { animation: none; } }

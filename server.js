@@ -12,7 +12,8 @@ import { openHistory } from "./history.js";
 import * as garden from "./garden.js";
 import * as notice from "./notice.js";
 import * as routine from "./routine.js";
-import { todaySummary, eveningDay } from "./evening.js";
+import { todaySummary, eveningDay, isEvening } from "./evening.js";
+import * as companion from "./companion.js";
 import { createStore } from "./swr.js";
 import { allowedHosts, hostOk, originOk, envValueOk } from "./guard.js";
 
@@ -51,6 +52,7 @@ const history = openHistory(path.join(DATA, "history.jsonl"));
 const gardens = garden.store(path.join(DATA, "garden"));
 const notices = notice.store(path.join(DATA, "notices"));
 const routines = routine.store(path.join(DATA, "routine"));
+const companions = companion.store(path.join(DATA, "companion"));
 const routineItems = (user) => routine.parseItems(loadUser(user)?.widgets.find((w) => w.type === "routine")?.items ?? []);
 
 function noticeCandidates(user) {
@@ -130,7 +132,8 @@ http.createServer(async (req, res) => {
       const eveNow = eveningDay(Date.now());
       const rw = cfg.widgets.find((w) => w.type === "routine");
       const today = todaySummary({ garden: gardens.load(user), routine: rw ? routine.today(routines.load(user), routine.parseItems(rw.items ?? []), eveNow) : null, cfg, widgets, now: eveNow });
-      return json(res, 200, { today, user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
+      const suggestions = companion.suggest({ widgets, cfg, today, evening: isEvening(cfg) || url.searchParams.has("evening"), later: companions.later(user) });
+      return json(res, 200, { today, companion: suggestions, user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
     }
 
     // Compact text-ish view for microcontrollers / e-paper / TTS. No HTML needed.
@@ -213,7 +216,7 @@ http.createServer(async (req, res) => {
     // a normal call waits up to BRIEF_TIMEOUT_MS for the model. Only model answers are cached.
     if (url.pathname === "/api/brief" && req.method === "POST") {
       const input = await body(req);
-      const key = `brief:${input.name}:${input.mood ?? ""}:${input.evening ? "eve" : "am"}:${JSON.stringify(input.widgets).length}:${JSON.stringify(input.today ?? "").length}`;
+      const key = `brief:${input.name}:${input.character ?? ""}:${input.mood ?? ""}:${input.evening ? "eve" : "am"}:${JSON.stringify(input.widgets).length}:${JSON.stringify(input.today ?? "").length}`;
       const hit = cache.get(key);
       if (hit && Date.now() - hit.at < TTL) return json(res, 200, { ...hit.value, cached: true });
       if (input.fast) return json(res, 200, { text: fallback(input), fromModel: false, pending: true });
@@ -228,6 +231,12 @@ http.createServer(async (req, res) => {
       try { for await (const text of stream) res.write(JSON.stringify({ message: { content: text } }) + "\n"); }
       catch (e) { res.write(JSON.stringify({ message: { content: `\n[${e.message}]` } }) + "\n"); }
       return res.end();
+    }
+
+    if (url.pathname === "/api/companion/later" && req.method === "POST") {
+      const { id } = await body(req);
+      if (typeof id !== "string" || id.length > 300) return json(res, 400, { error: "Bad id." });
+      return json(res, 200, { later: companions.addLater(user, id) });
     }
 
     if (url.pathname === "/api/routine/tap" && req.method === "POST") {

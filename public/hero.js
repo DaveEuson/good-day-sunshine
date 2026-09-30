@@ -7,7 +7,7 @@
   const moodKey = (u) => `gds:mood:${u}:${todayKey()}`;
 
   window.getMood = (u) => localStorage.getItem(moodKey(u)) || "";
-  const setMood = (u, m) => { if (m) localStorage.setItem(moodKey(u), m); else localStorage.removeItem(moodKey(u)); };
+  const setMood = window.setMood = (u, m) => { if (m) localStorage.setItem(moodKey(u), m); else localStorage.removeItem(moodKey(u)); };
 
   const greet = (name, mood) => {
     const h = new Date().getHours();
@@ -90,14 +90,18 @@
       ...d.todo.map((x) => `<span class="chip todo">${esc(x)}</span>`),
     ].join("");
     $("#hero-block").innerHTML = `
-      <img class="face" src="${face}" alt="" width="92" height="92">
-      <div class="hero-main">
+      <div class="buddy">
+        <img class="face big" src="${face}" alt="" width="112" height="112">
+        <div class="speech" id="speech" aria-live="polite">${companionHTML(data, user)}</div>
+      </div>
+      <div class="hero-main status">
         <div class="greeting">Good evening, ${esc(cfg.name)}.</div>
         <h1 class="answer"><b>${esc(d.headline)}</b> <span>${esc(d.tail)}</span></h1>
         <div class="chips">${chips}</div>
         <div class="mood">${mood ? `<span class="muted">${EVE_ACK[mood]}</span>` : `<span class="muted">How was today?</span>`}${EVE_MOODS.map(([id, l]) => `<button class="pill ${mood === id ? "on" : ""}" data-eve="${id}">${l}</button>`).join("")}</div>
       </div>`;
-    $("#hero-block").onclick = (e) => {
+    bindCompanion($("#speech"), data, user, () => { $("#speech").innerHTML = companionHTML(data, user); });
+    $("#hero-block").querySelector(".status").onclick = (e) => {
       const b = e.target.closest("[data-eve]");
       if (!b) return;
       if (mood === b.dataset.eve) localStorage.removeItem(eveKey(user)); else localStorage.setItem(eveKey(user), b.dataset.eve);
@@ -131,17 +135,21 @@
       return a;
     }
     const face = faceURI(cfg.character || "sun", a.high.length > 0 || a.broken.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
+    // The companion leads: its face and speech bubble first, then the one-line status and chips.
     $("#hero-block").innerHTML = `
-      <img class="face" src="${face}" alt="" width="92" height="92">
-      <div class="hero-main">
+      <div class="buddy">
+        <img class="face big" src="${face}" alt="${esc(CHARACTERS[cfg.character] ?? "Sun")}" width="112" height="112">
+        <div class="speech" id="speech" aria-live="polite">${companionHTML(data, user)}</div>
+      </div>
+      ${ringHTML(ringNext)}
+      <div class="hero-main status">
         <div class="greeting">${esc(greet(cfg.name, mood))}</div>
         <h1 class="answer"><b>${esc(a.head)}</b> <span>${a.tail}</span></h1>
         <div class="chips">${chips(ws, a)}</div>
-        <div class="mood">${mood ? `<span class="muted">${ACK[mood]}</span>` : `<span class="muted">How are you this morning?</span>`}${MOODS.map(([id, l]) => `<button class="pill ${mood === id ? "on" : ""}" data-mood="${id}">${l}</button>`).join("")}</div>
-      </div>
-      ${ringHTML(ringNext)}`;
+      </div>`;
+    bindCompanion($("#speech"), data, user, () => { $("#speech").innerHTML = companionHTML(data, user); });
     tickRing();
-    $("#hero-block").onclick = async (e) => {
+    $("#hero-block").querySelector(".status").onclick = async (e) => {
       const f = e.target.closest("[data-forget]");
       if (f) { await fetch(`/api/notice/forget?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: f.dataset.forget }) }); f.remove(); toast("Forgotten."); return; }
       const b = e.target.closest("[data-mood]");

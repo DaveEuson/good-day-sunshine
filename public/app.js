@@ -203,7 +203,7 @@ async function loadBrief() {
   $("#brief").hidden = false;
   const seq = ++briefSeq;
   const evening = isEvening(data.config);
-  const payload = { widgets: data.widgets, name: data.user, tone: data.brief.tone, focus: data.brief.focus, mood: evening ? "" : getMood(user), evening, today: evening ? data.today : undefined };
+  const payload = { widgets: data.widgets, name: data.user, character: data.config.character, tone: data.brief.tone, focus: data.brief.focus, mood: evening ? "" : getMood(user), evening, today: evening ? data.today : undefined };
   const post = (extra) => fetch("/api/brief", { method: "POST", body: JSON.stringify({ ...payload, ...extra }) }).then((r) => r.json());
   const show = (j) => {
     if (seq !== briefSeq) return;
@@ -652,7 +652,7 @@ function wizard(existing) {
 let staleTimer = null, staleTries = 0;
 async function load(refresh = false) {
   $("#status").textContent = "Loading…";
-  const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}`);
+  const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}${params.has("evening") ? "&evening=1" : ""}`);
   data = await r.json();
   if (data.error) {
     if (user === "new" || r.status === 404) return wizard(null);

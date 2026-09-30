@@ -21,6 +21,7 @@ export function facts(widgets) {
       case "news": return (w.items ?? []).length ? `Top stories: ${w.items.slice(0, 4).map((i) => i.text).join("; ")}.` : null;
       case "routine": { const r = w.routine; return r?.total ? `Morning routine: ${r.done} of ${r.total} steps done${r.missing.length && !r.complete ? `; still to do: ${r.missing.join(", ")}` : ""}.` : null; }
       case "garden": { const p = w.garden?.plantView; return p ? `Garden: the ${p.name.toLowerCase()} ${p.wateredToday ? "has been watered today" : "has not been watered yet today"}${p.wilted ? " and is wilting" : ""}. Check-in streak: ${w.garden.streak} days in a row.` : null; }
+      case "ai": case "credits": return null;   // housekeeping cards: only mentioned when broken (handled above)
       default: return (w.stats ?? []).length ? `${w.title}: ${w.stats.map((s) => `${s.label.toLowerCase()} ${s.value}${d(s)}`).join(", ")}.` : null;
     }
   }).filter(Boolean).join("\n");
@@ -45,7 +46,7 @@ export function fallback({ widgets, name, evening, today }) {
 // Returns { text, fromModel, reason? }. `timeoutMs` bounds the model wait; past that the template is the answer.
 // Evening: a short recap of what got done and the one thing to set up for tomorrow.
 async function eveningBrief(input, env, timeoutMs) {
-  const { name, tone, today, widgets } = input;
+  const { name, tone, today, widgets, character } = input;
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const lines = [
     `Done today: ${today.done.length ? today.done.join(", ") : "nothing tracked"}.`,
@@ -54,7 +55,7 @@ async function eveningBrief(input, env, timeoutMs) {
     `Check-in streak: ${today.streak} days.`,
     ...widgets.filter((w) => w.status === "error").map((w) => `${w.title}: could not be checked (${w.error}).`),
   ].filter(Boolean).join("\n");
-  const system = `You write a two-sentence end-of-day note for ${name}. Tone: ${tone || "warm, concise"}. First sentence: acknowledge what got done today, kindly, without exaggerating; if little got done, say that is fine. Second sentence: the one thing to set up for tomorrow, from the data. Plain text, no lists, no emoji. Use only the facts given. Write like a friend talking, not a report: never say "tracked", "tasks", "outcome" or "little to report".`;
+  const system = `${persona(character, name)} You write a two-sentence end-of-day note for ${name}. Tone: ${tone || "warm, concise"}. First sentence: acknowledge what got done today, kindly, without exaggerating; if little got done, say that is fine. Second sentence: the one thing to set up for tomorrow, from the data. Plain text, no lists, no emoji. Use only the facts given. Write like a friend talking, not a report: never say "tracked", "tasks", "outcome" or "little to report".`;
   const fallbackText = [today.headline, today.todo[0] ? `${today.todo[0]}.` : "", today.tail].filter(Boolean).join(" ");
   try {
     const text = await aiText({ model, system, messages: [{ role: "user", content: lines }], effort: "low", temperature: 0.6, signal: AbortSignal.timeout(timeoutMs) }, env);
@@ -64,13 +65,23 @@ async function eveningBrief(input, env, timeoutMs) {
   }
 }
 
+// The character writes the brief in first person. Wording only; the facts rules below still apply.
+const CHARACTER = {
+  sun: "Sun, a warm, slightly nudgy morning companion",
+  cat: "Cat, a dry, secretly kind companion",
+  robot: "Robot, a precise, economical companion",
+  cloud: "Cloud, a soft, gentle companion",
+  coffee: "Coffee, a quick companion who keeps it short",
+};
+const persona = (c, name) => `You are ${CHARACTER[c] ?? CHARACTER.sun}. You are on ${name}'s side and want their day to go well. Speak to ${name} in first person ("I", "you"), like someone who is here to help, not a report.`;
+
 export async function brief(input, env, timeoutMs = +(env.BRIEF_TIMEOUT_MS || 20_000)) {
-  const { widgets, name, tone, focus, mood, evening, today } = input;
+  const { widgets, name, tone, focus, mood, evening, today, character } = input;
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const hour = new Date().getHours();
   if (evening && today) return eveningBrief(input, env, timeoutMs);
-  const system = `You write a "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
-${mood === "rough" ? "They said they feel rough this morning: one sentence, gentle, only the single most important thing. " : mood === "meh" ? "They feel meh: keep it to two short sentences. " : ""}Rules: plain text, no markdown, no lists, no headings, no emoji. One to three sentences, shorter is better. Say only what is new, changed, or needs a decision: things needing attention, the first event today, a number that moved, weather only if it changes plans. Never restate a zero, an unchanged number, or anything already obvious. If nothing needs them, say that in one short sentence and stop. Copy numbers exactly as digits from DATA. Do not invent data. A source that "could not be checked" must be mentioned as such in one clause; never claim all clear while one is broken.`;
+  const system = `${persona(character, name)} You write a "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
+${mood === "rough" ? "They said they feel rough this morning: one sentence, gentle, only the single most important thing. " : mood === "meh" ? "They feel meh: keep it to two short sentences. " : ""}Your job here is the picture of the day, not the to-do list: the next action is already suggested to them separately, so do not give instructions or say "please". Speak as yourself, using "I" at least once (for example "I only see…", "I'd keep an eye on…", "Looks like…"). Rules: plain text, no markdown, no lists, no headings, no emoji. One to three sentences, shorter is better. Say only what is new, changed, or worth knowing: things needing attention, the first event today, a number that moved, weather only if it changes plans. Never restate a zero, an unchanged number, or anything already obvious. If nothing needs them, say that in one short sentence and stop. Copy numbers exactly as digits from DATA. Do not invent data. A source that "could not be checked" must be mentioned as such in one clause; never claim all clear while one is broken.`;
   try {
     const text = await aiText({ model, system, messages: [{ role: "user", content: `DATA:\n${facts(widgets)}` }], effort: "low", temperature: 0.6, signal: AbortSignal.timeout(timeoutMs) }, env);
     return text ? { text, fromModel: true } : { text: fallback(input), fromModel: false, reason: "model returned nothing" };

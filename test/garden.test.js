@@ -47,8 +47,9 @@ test("garden actions via the server path: a request body is never taken for the 
 test("garden repair: NaN dates from the old bug become usable again", () => {
   const s = { ...fresh(), plant: { seed: "sprout", stage: 1, lastWater: "NaN-NaN-NaN", plantedAt: "2026-09-21" }, focusDay: "NaN-NaN-NaN", focusToday: 4, days: { "NaN-NaN-NaN": { water: true } } };
   repair(s);
-  assert.equal(s.plant.lastWater, null);
+  assert.match(s.plant.lastWater, /^\d{4}-\d{2}-\d{2}$/, "treated as watered yesterday, so no wilting");
   assert.equal(s.focusToday, 0);
-  assert.deepEqual(s.days, {});
+  assert.deepEqual(s.days, {}, "broken day keys removed");
+  checkin(s); assert.ok(!s.plant.wilted, "the repair does not wilt the plant");
   ACTIONS.water(s, {}); assert.equal(s.plant.stage, 2, "watering works again and the plant grows");
 });

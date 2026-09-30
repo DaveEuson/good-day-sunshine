@@ -18,7 +18,7 @@ export function parseFeed(xml, now = Date.now()) {
   const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map((m) => {
     const e = m[1];
     const t = Date.parse(tag(e, "issued") || tag(e, "modified"));
-    return { title: unesc(tag(e, "title")) || "(no subject)", url: e.match(/<link[^>]*href="([^"]+)"/)?.[1]?.replace(/&amp;/g, "&"), from: unesc(tag(e, "name")), summary: unesc(tag(e, "summary")), t: Number.isFinite(t) ? t : 0 };
+    return { title: unesc(tag(e, "title")) || "(no subject)", url: e.match(/<link[^>]*href="([^"]+)"/)?.[1]?.replace(/&amp;/g, "&"), from: unesc(tag(e, "name")), email: unesc(tag(e, "email")).toLowerCase(), summary: unesc(tag(e, "summary")), t: Number.isFinite(t) ? t : 0 };
   });
   const recent = entries.filter((e) => now - e.t < DAY).length;
   return { unread: +tag(xml, "fullcount") || 0, entries, recent, recentCapped: recent === entries.length && entries.length >= 20 };
@@ -47,7 +47,7 @@ export async function fetchData(cfg, env) {
       { label: `New in ${folder.name}, 24h`, value: f.recentCapped ? recentLabel : f.recent },
       { label: `Unread in ${folder.name}`, value: f.unread, sub: all && !all.error ? `${all.unread.toLocaleString()} in the whole inbox` : undefined },
     ],
-    items: f.entries.slice(0, cfg.max ?? 6).map((e) => ({ text: e.title, url: e.url, badge: e.from, sub: `${e.t ? ago(e.t) + " · " : ""}${e.summary}` })),
+    items: f.entries.slice(0, cfg.max ?? 6).map((e) => ({ text: e.title, url: e.url, badge: e.from, email: e.email, sub: `${e.t ? ago(e.t) + " · " : ""}${e.summary}` })),
     mail: { folder: folder.name, recent: f.recent, recentCapped: f.recentCapped, unread: f.unread },
   };
 }
