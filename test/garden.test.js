@@ -33,3 +33,22 @@ test("streak, tokens, growth, wilt, harvest", () => {
   assert.equal(s.tokens, 0); assert.ok(s.unlocked.seeds.includes("sunflower"));
   assert.throws(() => buy(s, "theme", "aurora"), /Need 80/);
 });
+
+import { ACTIONS, repair } from "../garden.js";
+test("garden actions via the server path: a request body is never taken for the time", () => {
+  const s = fresh();
+  checkin(s); plant(s, "sprout");
+  ACTIONS.water(s, {});
+  assert.match(s.plant.lastWater, /^\d{4}-\d{2}-\d{2}$/, "a real date, not NaN");
+  assert.throws(() => ACTIONS.water(s, {}), /Already watered today/);
+  ACTIONS.focus(s, {});
+  assert.match(s.focusDay, /^\d{4}-\d{2}-\d{2}$/);
+});
+test("garden repair: NaN dates from the old bug become usable again", () => {
+  const s = { ...fresh(), plant: { seed: "sprout", stage: 1, lastWater: "NaN-NaN-NaN", plantedAt: "2026-09-21" }, focusDay: "NaN-NaN-NaN", focusToday: 4, days: { "NaN-NaN-NaN": { water: true } } };
+  repair(s);
+  assert.equal(s.plant.lastWater, null);
+  assert.equal(s.focusToday, 0);
+  assert.deepEqual(s.days, {});
+  ACTIONS.water(s, {}); assert.equal(s.plant.stage, 2, "watering works again and the plant grows");
+});

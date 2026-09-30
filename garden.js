@@ -118,12 +118,30 @@ export function routineDone(s, now = Date.now()) {
   return s;
 }
 
-export const ACTIONS = { water, harvest, focus, plant: (s, b) => plant(s, b.seed), buy: (s, b) => buy(s, b.kind, b.id) };
+// Called as act(state, requestBody). Wrap every action so the body can never land in a `now` parameter
+// (that bug stored "NaN-NaN-NaN" as the watering date and froze the focus cap).
+export const ACTIONS = {
+  water: (s) => water(s),
+  harvest: (s) => harvest(s),
+  focus: (s) => focus(s),
+  plant: (s, b) => plant(s, b.seed),
+  buy: (s, b) => buy(s, b.kind, b.id),
+};
+
+// Repair state written by that bug: invalid dates become "never", so watering and focus work again.
+export function repair(s) {
+  const bad = (d) => typeof d === "string" && d.includes("NaN");
+  if (s.plant && bad(s.plant.lastWater)) s.plant.lastWater = null;
+  if (s.plant && bad(s.plant.plantedAt)) s.plant.plantedAt = dayStr(Date.now());
+  if (bad(s.focusDay)) { s.focusDay = null; s.focusToday = 0; }
+  for (const k of Object.keys(s.days ?? {})) if (bad(k)) delete s.days[k];
+  return s;
+}
 
 export function store(dir) {
   const file = (u) => path.join(dir, `${u}.json`);
   return {
-    load(u) { try { return { ...fresh(), ...JSON.parse(fs.readFileSync(file(u), "utf8")) }; } catch { return fresh(); } },
+    load(u) { try { return repair({ ...fresh(), ...JSON.parse(fs.readFileSync(file(u), "utf8")) }); } catch { return fresh(); } },
     save(u, s) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file(u), JSON.stringify(s, null, 1)); return s; },
   };
 }
