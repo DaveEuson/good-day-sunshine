@@ -8,6 +8,27 @@
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<div id="splash" class="splash" aria-label="Loading">
+  <svg viewBox="0 0 320 200" width="320" height="200" aria-hidden="true">
+    <path d="M30 170 A130 140 0 0 1 290 170" fill="none" class="sp-path"/>
+    <line x1="10" y1="170" x2="310" y2="170" class="sp-horizon"/>
+    <circle r="11" class="sp-sun">
+      <animateMotion dur="7s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.85;1" calcMode="linear" path="M30 170 A130 140 0 0 1 290 170"/>
+      <animate attributeName="opacity" dur="7s" repeatCount="indefinite" values="0;1;1;0;0" keyTimes="0;.06;.79;.85;1"/>
+    </circle>
+    <g class="sp-plant">
+      <animateTransform attributeName="transform" type="rotate" dur="7s" repeatCount="indefinite" values="-34 160 170;34 160 170;-34 160 170" keyTimes="0;.85;1" calcMode="spline" keySplines=".4 0 .6 1;.4 0 .6 1"/>
+      <path d="M160 170 Q160 140 160 108" class="sp-stem"/>
+      <path d="M160 140 Q144 128 132 132 Q146 144 160 140 Z" class="sp-leaf"/>
+      <path d="M160 126 Q176 112 188 116 Q174 130 160 126 Z" class="sp-leaf"/>
+      <ellipse cx="160" cy="104" rx="5" ry="8" class="sp-leaf"/>
+    </g>
+    <circle cx="160" cy="170" r="2.5" class="sp-base"/>
+  </svg>
+  <p class="splash-mark">GOOD DAY SUNSHINE</p>
+  <p class="splash-note">gathering your morning</p>
+</div>
+<script>if (matchMedia("(prefers-reduced-motion: reduce)").matches) { const s = document.querySelector("#splash svg"); s.pauseAnimations(); s.setCurrentTime(2.4); }</script>
 <header class="top">
   <div class="topbar-left"><span id="date" class="date"></span><span id="clock" class="clock"></span></div>
   <div class="controls">

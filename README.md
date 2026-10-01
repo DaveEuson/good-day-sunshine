@@ -73,7 +73,9 @@ Register it in `providers/index.js` (and add an `OPTION_FIELDS` entry so the Wid
 
 ### Themes
 
-`public/themes.js`. One object per theme, six CSS variables (+ optional `page` gradient). `locked: true` themes are bought with garden tokens; costs in `garden.js`.
+`public/themes.js`. One object per theme, six CSS variables (+ optional `page` gradient). `locked: true` themes are bought with garden tokens; costs in `garden.js`. A theme may name Google `fonts` (loaded only when it is picked; offline it falls back to the font stack) and add its own rules under `:root[data-theme="..."]` in `styles.css`.
+
+**Heliotrope** follows the art plate in `art/` (*Heliotropic Record*, Pl. VIII): paper, ink, one saffron accent, mono labels, and an italic serif for the companion's voice. The same plate, animated, is the loading screen (the sun crosses the sky and the seedling turns to follow); it only appears if loading takes more than a quarter second.
 
 ## The hero
 

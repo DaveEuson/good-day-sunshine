@@ -17,6 +17,7 @@ function applyTheme(key, accent) {
   r.setProperty("--on-accent", t.onAccent ?? t.bg);
   r.setProperty("--alert", t.alert ?? "#c0341d");
   document.documentElement.dataset.theme = THEMES[key] ? key : "sunrise";
+  if (t.fonts && !document.getElementById(`fonts-${key}`)) document.head.insertAdjacentHTML("beforeend", `<link id="fonts-${key}" rel="stylesheet" href="https://fonts.googleapis.com/css2?${t.fonts}&display=swap">`);
   if (accent) r.setProperty("--accent", accent);
   $("#theme").value = key;
   $("#accent").value = accent || (t.accent.startsWith("#") ? t.accent : "#7aa2ff");
@@ -28,10 +29,12 @@ function saveTheme(p) { localStorage.setItem(`ld:theme:${user}`, JSON.stringify(
 function themeOptions(sel, allowLocked) {
   const owned = gardenState?.unlocked?.themes ?? [];
   const costs = Object.fromEntries((gardenState?.themes ?? []).map((t) => [t.id, t.cost]));
+  const was = sel.value;   // re-rendered when tokens change; keep the selection
   sel.innerHTML = Object.entries(THEMES).map(([k, t]) => {
     const locked = t.locked && !owned.includes(k);
     return `<option value="${k}" ${locked && !allowLocked ? "disabled" : ""}>${t.name}${locked ? ` 🔒 ${costs[k] ?? ""}` : ""}</option>`;
   }).join("");
+  if (was) sel.value = was;
 }
 const renderThemePicker = () => themeOptions($("#theme"), false);
 $("#theme").onchange = (e) => { const p = { ...themePrefs(), theme: e.target.value, accent: null }; saveTheme(p); applyTheme(p.theme, null); };
@@ -654,6 +657,7 @@ async function load(refresh = false) {
   $("#status").textContent = "Loading…";
   const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}${params.has("evening") ? "&evening=1" : ""}`);
   data = await r.json();
+  document.getElementById("splash")?.remove();
   if (data.error) {
     if (user === "new" || r.status === 404) return wizard(null);
     $("#grid").innerHTML = `<p class="err">${esc(data.error)}</p>`; return;
@@ -724,5 +728,5 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "j") pickFocusTask();
 });
 
-loadUsers().then(() => load());
+loadUsers().then(() => load()).catch(() => { const s = document.getElementById("splash"); if (s) s.querySelector(".splash-note").textContent = "Can’t reach the dashboard server."; });
 setInterval(() => load(), 10 * 60 * 1000);
