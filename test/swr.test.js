@@ -64,3 +64,16 @@ test("swr: clear() beats a refresh that was already running (a key saved mid-ref
   assert.deepEqual(fresh.value, { used: "new key" });
   assert.deepEqual((await s.get("k", async () => ({ used: "x" }))).value, { used: "new key" }, "the old result was not stored");
 });
+
+test("swr: a partial result (retryMs) is fresh only briefly, then the next request finishes the job", async () => {
+  let t = 0, n = 0;
+  const s = createStore(tmp(), { ttl: 60_000, now: () => t });
+  const fetchIt = async () => (++n < 2 ? { partial: true, retryMs: 3000, n } : { n });
+  assert.equal((await s.get("p", fetchIt)).value.n, 1);
+  t = 1000; assert.equal((await s.get("p", fetchIt)).stale, false, "still inside retryMs");
+  t = 3500; const again = await s.get("p", fetchIt);
+  assert.equal(again.stale, true, "after retryMs it is served stale while a refresh runs");
+  await new Promise((res) => setImmediate(res));
+  t = 3600; assert.deepEqual((await s.get("p", fetchIt)).value, { n: 2 });
+  t = 20_000; assert.equal((await s.get("p", fetchIt)).stale, false, "a finished result uses the normal ttl");
+});

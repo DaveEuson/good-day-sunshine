@@ -8,11 +8,13 @@ import * as email from "./email.js";
 import * as news from "./news.js";
 import * as ai from "./aistatus.js";
 import * as credits from "./credits.js";
+import * as claudeprojects from "./claudeprojects.js";
+import * as claudeleft from "./claudeleft.js";
 
 // Add a provider: export { meta, fetchData(cfg, env) } and register here.
 // fetchData returns { title?, stats?: [{label,value,sub?}], items?: [{text,url?,badge?,sub?}],
 //                     attention?: [{text,url,level:"high"|"med"|"low"}], setup?: string, error?: string }
-export const providers = { github, youtube, twitch, attention, weather, calendar, email, news, ai, credits };
+export const providers = { github, youtube, twitch, attention, weather, calendar, email, news, ai, credits, claudeprojects, claudeleft };
 
 // Secrets the options menu can set. Stored in .env, never sent back to the browser (except `secret: false` ones).
 // `group` = heading in the Keys tab; `for` = widget types that use the key ("@ai" = AI model providers). The tab
@@ -66,6 +68,16 @@ export const OPTION_FIELDS = {
   credits: [
     { k: "budget.anthropic", label: "Anthropic budget ($/month)", type: "number", min: 0, ph: "none" },
     { k: "budget.openai", label: "OpenAI budget ($/month)", type: "number", min: 0, ph: "none" },
+  ],
+  claudeprojects: [
+    { k: "days", label: "Look back", type: "select", options: [[1, "Today"], [7, "7 days"], [14, "14 days"], [30, "30 days"]], def: 7 },
+    { k: "top", label: "Projects shown", type: "number", min: 1, max: 12, def: 6 },
+    { k: "dir", label: "Claude folder", type: "text", ph: "blank = ~/.claude" },
+  ],
+  claudeleft: [
+    { k: "days", label: "Look back", type: "select", options: [[1, "Today"], [7, "7 days"], [14, "14 days"], [30, "30 days"]], def: 7 },
+    { k: "top", label: "Projects shown", type: "number", min: 1, max: 10, def: 5 },
+    { k: "dir", label: "Claude folder", type: "text", ph: "blank = ~/.claude" },
   ],
   ai: [],
   garden: [],

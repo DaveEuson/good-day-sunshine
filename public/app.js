@@ -17,6 +17,7 @@ function applyTheme(key, accent) {
   r.setProperty("--on-accent", t.onAccent ?? t.bg);
   r.setProperty("--alert", t.alert ?? "#c0341d");
   document.documentElement.dataset.theme = THEMES[key] ? key : "sunrise";
+  requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.add("themed")));
   if (t.fonts && !document.getElementById(`fonts-${key}`)) document.head.insertAdjacentHTML("beforeend", `<link id="fonts-${key}" rel="stylesheet" href="https://fonts.googleapis.com/css2?${t.fonts}&display=swap">`);
   if (accent) r.setProperty("--accent", accent);
   $("#theme").value = key;

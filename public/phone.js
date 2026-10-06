@@ -5,7 +5,7 @@
   const $ = (s) => document.querySelector(s);
   const TAB_OF = {
     attention: "today", routine: "today", noticed: "today", calendar: "today", weather: "today",
-    email: "updates", news: "updates", github: "updates", youtube: "updates", twitch: "updates", credits: "updates", ai: "updates",
+    email: "updates", news: "updates", github: "updates", youtube: "updates", twitch: "updates", credits: "updates", ai: "updates", claudeprojects: "updates", claudeleft: "updates",
     garden: "garden",
   };
   const TABS = [["today", "Today", "sun"], ["updates", "Updates", "stack"], ["garden", "Garden", "leaf"], ["chat", "Chat", "chat"]];

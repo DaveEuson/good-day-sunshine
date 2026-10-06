@@ -34,7 +34,7 @@
     `<svg class="ic ${cls}" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[name] ?? P.dot}</svg>`;
 
   // widget type -> icon
-  window.WIDGET_ICON = { attention: "bell", routine: "checkCircle", weather: "cloud", calendar: "calendar", email: "mail", news: "news", github: "branch", youtube: "play", twitch: "broadcast", garden: "leaf", ai: "spark", credits: "coin", noticed: "spark" };
+  window.WIDGET_ICON = { attention: "bell", routine: "checkCircle", weather: "cloud", calendar: "calendar", email: "mail", news: "news", github: "branch", youtube: "play", twitch: "broadcast", garden: "leaf", ai: "spark", credits: "coin", noticed: "spark", claudeprojects: "stack", claudeleft: "chat" };
   window.widgetIcon = (type, size = 16) => icon(WIDGET_ICON[type] ?? "dot", size);
 
   window.hydrateIcons = (root = document) => {

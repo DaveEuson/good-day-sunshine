@@ -91,12 +91,12 @@ async function runWidget(w, i, user, force = false) {
   try {
     const { value: data, at, stale } = await widgetCache.get(`${user}:${JSON.stringify(w)}`, async () => {
       const t0 = Date.now();
-      const d = await p.fetchData(w, env, { history });
+      const d = await p.fetchData(w, env, { history, dataDir: DATA });
       if (env.GDS_TIMING) console.log(`[timing] ${w.type} ${Date.now() - t0}ms`);
       if (d.stats && !d.error && !d.setup) history.record(hkey, d.stats);
       return d;
     }, { force });
-    const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data, asOf: at, ...(stale ? { stale: true } : {}) };
+    const out = { ...base, title: w.title ?? data.title ?? p.meta.title, icon: p.meta.icon, ...data, asOf: at, ...(stale || data.partial ? { stale: true } : {}) };
     out.status = data.setup ? "setup" : data.error ? "error" : "ok";
     if (out.status !== "ok") { delete out.stats; delete out.items; delete out.attention; } // never ship numbers from a failed check
     else if (out.stats) out.stats = history.enrich(hkey, structuredClone(out.stats), Date.now(), +w.window || 7);

@@ -2,6 +2,7 @@
 //   fresh (younger than ttl)      → returned as is
 //   stale (older, or from disk)   → returned at once marked stale; one background refresh starts
 //   missing / force               → waits for a fetch
+// A value may carry `retryMs` (a partial result): it counts as fresh only that long, so the next request finishes the job.
 // A fetch that throws is stored as { error } so a failed refresh replaces old numbers instead of hiding behind them.
 import fs from "node:fs";
 import path from "node:path";
@@ -44,7 +45,7 @@ export function createStore(file, { ttl = 5 * 60_000, maxStale = 24 * 3_600_000,
   return {
     async get(key, fn, { force = false } = {}) {
       const hit = map.get(key);
-      if (hit && !force && !hit.fromDisk && now() - hit.at < ttl) return { value: hit.value, at: hit.at, stale: false };
+      if (hit && !force && !hit.fromDisk && now() - hit.at < (hit.value?.retryMs ?? ttl)) return { value: hit.value, at: hit.at, stale: false };
       if (hit && !force) { refresh(key, fn); return { value: hit.value, at: hit.at, stale: true }; }
       const value = await refresh(key, fn);
       return { value, at: map.get(key)?.at ?? now(), stale: false };

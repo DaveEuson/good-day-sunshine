@@ -55,6 +55,8 @@ Click ⚙ (or press `o`). Everything is there: name, theme, accent, brief, sound
 | `garden` | – | nothing |
 | `ai` | – | nothing. Local AI status: Ollama up/down, loaded models + VRAM, GPU use via `nvidia-smi` if present, which provider answers brief and chat, and whether anything leaves the machine |
 | `credits` | `budget` {anthropic, openai} USD/month | AI credits: Anthropic month-to-date spend (`ANTHROPIC_ADMIN_KEY`, org accounts), OpenAI month-to-date (`OPENAI_ADMIN_KEY`), OpenRouter credits left (`OPENROUTER_API_KEY`, exact with a management key), DeepSeek balance (`DEEPSEEK_API_KEY`). Budgets give "left" and a heads-up under 10%. A provider that fails shows "couldn’t check", never $0 |
+| `claudeprojects` | `days` (1-30), `top`, `dir` | Claude projects: from Claude Code's local transcripts (`~/.claude/projects`): projects active in 24 h, fresh tokens, **estimated** spend (public per-token prices, so treat it as a guide), session time, and a line per project. Reads files only; works only on a machine where Claude Code runs. The first scan of a big history is read in the background over a few refreshes; the card shows what is indexed so far. The index (including the last prompt per session) is kept in `data/claudecode-index.json` |
+| `claudeleft` | `days`, `top`, `dir` | Where you left off: per project, the last thing you asked Claude Code plus the session title, to pick the thread back up. It puts your own prompts on screen, so it is a separate widget and off by default |
 | `github` | `user`, `top`, `window` (days, default 14) | `GITHUB_TOKEN` or `gh` (traffic needs push access) |
 | `youtube` | `channelId` | `YOUTUBE_API_KEY` |
 | `twitch` | `login` | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`; followers need `TWITCH_USER_TOKEN` |

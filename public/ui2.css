@@ -24,6 +24,8 @@ body { max-width: 1360px; font-feature-settings: "ss01", "cv11"; -webkit-font-sm
 .date { font-weight: 600; font-size: 14px; letter-spacing: -.005em; }
 .clock { font-family: var(--mono); font-size: 13px; }
 .controls { gap: 6px; }
+/* no colour fades while the theme is first applied (the page would flash from the default dark palette) */
+html:not(.themed) * { transition: none !important; }
 .controls select, .controls button, .controls input { border-radius: 12px; border-color: var(--border); background: color-mix(in srgb, var(--card) 70%, transparent); font-size: 13px; transition: background .3s var(--ease), border-color .3s var(--ease), transform .3s var(--ease); }
 .controls select { padding: 8px 10px; }
 .controls button:not(.primary) { width: 38px; height: 38px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); }
@@ -94,6 +96,7 @@ button:active:not(:disabled), .c-btn:active, .rt:active { transform: translateY(
   body:not(.tv):not(.small):not(.phone) .grid > [data-type="email"] { grid-column: span 5; }
   body:not(.tv):not(.small):not(.phone) .grid > [data-type="news"], body:not(.tv):not(.small):not(.phone) .grid > [data-type="github"] { grid-column: span 6; }
   body:not(.tv):not(.small):not(.phone) .grid > [data-type="ai"] { grid-column: span 4; }
+  body:not(.tv):not(.small):not(.phone) .grid > [data-type="claudeprojects"], body:not(.tv):not(.small):not(.phone) .grid > [data-type="claudeleft"] { grid-column: span 6; }
 }
 @media (min-width: 700px) and (max-width: 999px) {
   body:not(.tv):not(.small):not(.phone) .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: dense; }
