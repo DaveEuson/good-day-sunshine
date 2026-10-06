@@ -18,7 +18,6 @@ function applyTheme(key, accent) {
   r.setProperty("--alert", t.alert ?? "#c0341d");
   document.documentElement.dataset.theme = THEMES[key] ? key : "sunrise";
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.add("themed")));
-  if (t.fonts && !document.getElementById(`fonts-${key}`)) document.head.insertAdjacentHTML("beforeend", `<link id="fonts-${key}" rel="stylesheet" href="https://fonts.googleapis.com/css2?${t.fonts}&display=swap">`);
   if (accent) r.setProperty("--accent", accent);
   $("#theme").value = key;
   $("#accent").value = accent || (t.accent.startsWith("#") ? t.accent : "#7aa2ff");
@@ -101,7 +100,7 @@ function routineCard(w) {
   const foot = r.complete ? `<p class="rt-foot">All done. That’s the morning handled.</p>` : "";
   return `<section class="card widget routine ${r.complete ? "complete" : ""}" data-wid="${w.id}" data-type="routine">
     <h2><span class="icon">${widgetIcon("routine")}</span>${esc(w.title)}<span class="when">${r.done} of ${r.total}</span></h2>
-    <div class="rt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.total}" aria-valuenow="${r.done}"><i style="width:${pct}%"></i></div>
+    <div class="rt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.total}" aria-valuenow="${r.done}"><i style="transform:scaleX(${pct / 100})"></i></div>
     <ul class="rt-list">${rows}</ul>${foot}</section>`;
 }
 $("#grid").addEventListener("click", async (e) => {
@@ -213,8 +212,14 @@ async function loadBrief() {
   const show = (j) => {
     if (seq !== briefSeq) return;
     $("#brief").classList.toggle("pending", !!j.pending);
-    $("#brief").dataset.note = j.pending ? "thinking…" : j.fromModel ? "" : `summary · ${j.reason || "no model"}`;
-    $("#brief").innerHTML = `<p>${esc(j.text || j.error)}</p>`;
+    const why = /took over/.test(j.reason ?? "") ? "the AI model was too slow" : /nothing/.test(j.reason ?? "") ? "the AI model had nothing to say" : j.reason || "no AI model is set up";
+    $("#brief").dataset.note = j.pending ? "Writing…" : j.fromModel ? "" : `Plain summary: ${why}.`;
+    const rough = !evening && getMood(user) === "rough";
+    $("#brief").className = `card brief${j.pending ? " pending" : ""}${rough ? " closed" : ""}`;
+    $("#brief").innerHTML = `<p>${esc(j.text || j.error)}</p><button type="button" class="brief-more" hidden>More</button>`;
+    const p = $("#brief p"), more = $("#brief .brief-more");
+    more.hidden = !(rough || p.scrollHeight > p.clientHeight + 2);
+    if (rough) more.textContent = "Show the brief";
   };
   try {
     const fast = await post({ fast: true });
@@ -227,8 +232,8 @@ async function loadBrief() {
 
 // ---------- chat ----------
 const chatLog = [];
-$("#chat-toggle").onclick = () => { if (document.body.classList.contains("phone")) return window.phoneTab?.("chat"); $("#chat").hidden = !$("#chat").hidden; if (!$("#chat").hidden) $("#chat-input").focus(); };
-$("#chat-clear").onclick = () => { chatLog.length = 0; $("#chat-log").innerHTML = ""; };
+$("#chat-toggle").onclick = () => { if (document.body.classList.contains("phone")) return window.phoneTab?.("chat"); $("#chat").hidden = !$("#chat").hidden; if (!$("#chat").hidden) { window.fillStarters?.(); $("#chat-input").focus(); } };
+$("#chat-clear").onclick = () => { chatLog.length = 0; $("#chat-log").innerHTML = ""; window.fillStarters?.(); };
 async function ask(q) {
   q = q.trim();
   if (!q) return;
@@ -236,6 +241,14 @@ async function ask(q) {
   $("#chat-input").value = q;
   $("#chat-form").requestSubmit();
 }
+$("#brief").addEventListener("click", (e) => {
+  const b = e.target.closest(".brief-more");
+  if (!b) return;
+  const el = $("#brief");
+  el.classList.remove("closed");
+  el.classList.toggle("open");
+  b.textContent = el.classList.contains("open") ? "Less" : "More";
+});
 $("#ask").onsubmit = (e) => { e.preventDefault(); ask($("#ask-in").value); $("#ask-in").value = ""; };
 $("#ask").addEventListener("click", (e) => { const b = e.target.closest("[data-ask]"); if (b) ask(b.dataset.ask); });
 $("#chat-form").onsubmit = async (e) => {
@@ -614,14 +627,15 @@ $("#settings-form").addEventListener("submit", async (e) => {
 let slide = 0, cycleTimer = null;
 function startCycle() {
   clearInterval(cycleTimer);
-  if (MODE !== "small") return;
+  if (MODE !== "small" && MODE !== "tv") return;
+  const per = MODE === "tv" ? 3 : 1;   // cards on screen at once
   const cards = () => [...document.querySelectorAll("#grid > .widget:not(.dim)")];
   const dots = $("#dots");
   const show = () => {
     const c = cards(); if (!c.length) return;
-    const cur = slide % c.length;
-    c.forEach((el, i) => el.classList.toggle("active", i === cur));
-    dots.innerHTML = c.map((_, i) => `<i class="${i === cur ? "on" : ""}"></i>`).join("");
+    const pages = Math.ceil(c.length / per), cur = slide % pages;
+    c.forEach((el, i) => el.classList.toggle("active", Math.floor(i / per) === cur));
+    dots.innerHTML = Array.from({ length: pages }, (_, i) => `<i class="${i === cur ? "on" : ""}"></i>`).join("");
   };
   show();
   cycleTimer = setInterval(() => { slide++; show(); }, (data.config?.display?.cycleSec ?? 12) * 1000);
@@ -686,8 +700,9 @@ async function load(refresh = false) {
   [...$("#grid").children].forEach((el, i) => el.style.setProperty("--i", i));
   if (!firstPaint) { firstPaint = true; $("#grid").classList.add("enter"); $("#hero-block").classList.add("enter"); setTimeout(() => { $("#grid").classList.remove("enter"); $("#hero-block").classList.remove("enter"); }, 1800); }
   window.phoneLayout?.();
-  $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
-  $("#setup-strip").innerHTML = [broken.length ? `<span class="err">${icon("alert", 14, "inl")} ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
+  // Broken sources already speak in the headline, the bubble and on their own card; this is only the quiet footer link.
+  $("#setup-strip").hidden = !pending.length || !!MODE;
+  $("#setup-strip").innerHTML = pending.length ? `Not set up: ${pending.map((w) => esc(w.title)).join(", ")}. <button id="setup-go" class="link">Add keys</button>` : "";
   $("#setup-go")?.addEventListener("click", () => openSettings("keys"));
   $("#status").textContent = data.stale ? `Showing saved data for ${data.stale} card${data.stale === 1 ? "" : "s"} · updating…` : `Updated ${new Date().toLocaleTimeString()}`;
   // Saved data came back instantly; fresh fetches are running on the server. Check again shortly, a few times.
@@ -720,15 +735,15 @@ $("#user").onchange = (e) => {
 };
 $("#refresh").onclick = () => load(true);
 function pickFocusTask() {
-  const att = data?.widgets.flatMap((w) => w.attention ?? []) ?? [];
-  const top = att.find((x) => x.level === "high") ?? att[0];
-  const t = prompt("Just one thing. What is it?", top ? top.text.replace(/^(Review|Assigned): /, "") : "");
-  if (t) startFocus(t, user, { onDone: () => load() });
+  if (MODE || !data) return;   // a TV or panel has no keyboard
+  window.phoneTab?.("today");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (!window.openOneThing?.(data, user)) toast("Couldn’t open the picker.");
 }
 $("#focus-toggle").onclick = pickFocusTask;
 $("#grid").addEventListener("click", (e) => { if (e.target.closest("[data-open=options]")) openSettings("keys"); const b = e.target.closest("[data-focus]"); if (b) startFocus(b.dataset.focus.replace(/^(Review|Assigned): /, ""), user, { onDone: () => load() }); });
 document.addEventListener("keydown", (e) => {
-  if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;   // Ctrl+C is copy, not Chat
   if (e.key === "r") load(true);
   if (e.key === "c") $("#chat-toggle").click();
   if (e.key === "o") openSettings();

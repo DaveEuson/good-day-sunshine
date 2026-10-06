@@ -33,17 +33,10 @@
     return { head, tail, high, att, broken };
   }
 
+  // Only what the bubble does not already say: how many things are urgent, and the nudges you asked for.
   function chips(ws, a) {
     const out = [];
     if (a.high.length) out.push(`<span class="chip alert">${a.high.length} urgent</span>`);
-    const rt = ws.find((w) => w.type === "routine")?.routine;
-    if (rt?.total && !rt.complete) out.push(`<span class="chip">Routine ${rt.done} of ${rt.total}</span>`);
-    const mail = ws.find((w) => w.type === "email" && w.status === "ok")?.mail;
-    if (mail) { const n = mail.recentCapped ? "20+" : mail.recent; out.push(`<span class="chip">${n ? `${n} new in ${esc(mail.folder)}` : `nothing new in ${esc(mail.folder)}`}</span>`); }
-    const cal = ws.find((w) => w.type === "calendar" && w.stats);
-    if (cal) out.push(`<span class="chip">${cal.stats[0].value} today</span>`);
-    const g = ws.find((w) => w.type === "garden")?.garden;
-    if (g?.plantView && !g.plantView.wateredToday && !g.plantView.ready) out.push(`<span class="chip">Water the ${esc(g.plantView.name.toLowerCase())}</span>`);
     for (const n of ws.find((w) => w.type === "noticed")?.todayNudges ?? []) out.push(`<span class="chip nudge" title="tap to forget this nudge" data-forget="${esc(n.id)}">${esc(n.time)} · ${esc(n.text)}</span>`);
     return out.join("");
   }
@@ -68,6 +61,13 @@
   }
   setInterval(tickRing, 15_000);
 
+  // The one-line state of the day, shown quietly under the companion's suggestion (the bubble leads; this is its context).
+  window.dayLine = (data) => {
+    const ws = data.widgets, next = ws.find((w) => w.type === "calendar")?.next ?? null;
+    const a = answer(ws, next && new Date(next.start) > Date.now() ? next : null);
+    return `${esc(a.head)}${a.tail ? " " + a.tail : ""}`;   // tail is already escaped
+  };
+
   // Evening from cfg.evening.from (default 17:00) until 4 am. ?evening=1 forces it for a look.
   window.isEvening = (cfg, d = new Date()) => {
     if (new URLSearchParams(location.search).has("evening")) return true;
@@ -86,8 +86,6 @@
     const chips = [
       a.broken.length ? `<span class="chip alert">${esc(a.broken.map((w) => w.title).join(", "))} can’t connect</span>` : "",
       a.high.length ? `<span class="chip alert">${a.high.length} urgent</span>` : "",
-      ...d.tomorrow.slice(d.tail ? 1 : 0).map((x) => `<span class="chip">Tomorrow · ${esc(x)}</span>`),
-      ...d.todo.map((x) => `<span class="chip todo">${esc(x)}</span>`),
     ].join("");
     $("#hero-block").innerHTML = `
       <div class="buddy">
@@ -95,9 +93,7 @@
         <div class="speech" id="speech" aria-live="polite">${companionHTML(data, user)}</div>
       </div>
       <div class="hero-main status">
-        <div class="greeting">Good evening, ${esc(cfg.name)}.</div>
-        <h1 class="answer"><b>${esc(d.headline)}</b> <span>${esc(d.tail)}</span></h1>
-        <div class="chips">${chips}</div>
+        ${chips ? `<div class="chips">${chips}</div>` : ""}
         <div class="mood">${mood ? `<span class="muted">${EVE_ACK[mood]}</span>` : `<span class="muted">How was today?</span>`}${EVE_MOODS.map(([id, l]) => `<button class="pill ${mood === id ? "on" : ""}" data-eve="${id}">${l}</button>`).join("")}</div>
       </div>`;
     bindCompanion($("#speech"), data, user, () => { $("#speech").innerHTML = companionHTML(data, user); });
@@ -112,6 +108,7 @@
   }
 
   window.renderHero = function renderHero(data, user, onMood) {
+    if (window.pickerOpen?.()) return;   // a refresh must not wipe what you are typing
     const ws = data.widgets;
     const cfg = data.config;
     const mood = getMood(user);
@@ -135,18 +132,15 @@
       return a;
     }
     const face = faceURI(cfg.character || "sun", a.high.length > 0 || a.broken.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
-    // The companion leads: its face and speech bubble first, then the one-line status and chips.
+    // The companion leads: its face and speech bubble, with the state of the day folded into the bubble.
+    const statusChips = chips(ws, a);
     $("#hero-block").innerHTML = `
       <div class="buddy">
         <img class="face big" src="${face}" alt="${esc(CHARACTERS[cfg.character] ?? "Sun")}" width="112" height="112">
         <div class="speech" id="speech" aria-live="polite">${companionHTML(data, user)}</div>
       </div>
       ${ringHTML(ringNext)}
-      <div class="hero-main status">
-        <div class="greeting">${esc(greet(cfg.name, mood))}</div>
-        <h1 class="answer"><b>${esc(a.head)}</b> <span>${a.tail}</span></h1>
-        <div class="chips">${chips(ws, a)}</div>
-      </div>`;
+      <div class="hero-main status"${statusChips ? "" : " hidden"}><div class="chips">${statusChips}</div></div>`;
     bindCompanion($("#speech"), data, user, () => { $("#speech").innerHTML = companionHTML(data, user); });
     tickRing();
     $("#hero-block").querySelector(".status").onclick = async (e) => {

@@ -80,7 +80,7 @@ button:active:not(:disabled), .c-btn:active, .rt:active { transform: translateY(
 .ask > button { width: 48px; height: 48px; padding: 0; border-radius: 16px; display: inline-grid; place-items: center; }
 .ask-chips button { font-size: 12.5px; }
 .setup-strip { margin: 0 0 20px; }
-.card.brief { background: none; border: 0; border-left: 2px solid var(--accent); border-radius: 0; box-shadow: none; padding: 2px 0 2px 20px; margin: 4px 0 28px; max-width: 74ch; font-size: 17px; line-height: 1.6; color: var(--text); }
+.card.brief { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin: 4px 0 28px; max-width: 74ch; font-size: 17px; line-height: 1.6; color: var(--text); }
 .brief::before { position: static; display: block; margin: 0 0 8px; padding: 0; background: none; font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; color: var(--muted); }
 .brief[data-note]:not([data-note=""])::after { position: static; display: block; margin-top: 8px; padding: 0; background: none; font-size: 10.5px; }
 .brief.pending p { color: transparent; background: linear-gradient(90deg, color-mix(in srgb, var(--border) 60%, transparent), color-mix(in srgb, var(--border) 20%, transparent), color-mix(in srgb, var(--border) 60%, transparent)) 0 0 / 220% 100%; border-radius: 8px; width: min(46ch, 100%); animation: gds-shimmer 1.6s linear infinite; user-select: none; }
@@ -221,3 +221,102 @@ body.tv .stat .v { font-size: 44px; }
   body.phone .card.widget { padding: 18px; }
 }
 button, input, select, textarea { font-family: inherit; }
+
+/* ---------- "Just one thing" picker, inside the bubble ---------- */
+.c-actions.pick { flex-direction: column; align-items: stretch; gap: 6px; }
+.c-actions.pick .c-btn { justify-content: flex-start; text-align: left; font-weight: 500; }
+.pick-form { display: flex; gap: 8px; margin-top: 12px; }
+.pick-form input { flex: 1; min-width: 0; min-height: 44px; padding: 0 14px; font-size: 15px; color: var(--text); background: color-mix(in srgb, var(--card) 70%, transparent); border: 1px solid var(--border); border-radius: 12px; }
+.pick-form input:focus { background: var(--card); outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: 0; }
+
+/* ---------- distilled: the bubble leads, everything else steps back ---------- */
+@media (min-width: 900px) {
+  body:not(.tv):not(.small):not(.phone) .hero { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "buddy ring" "status status"; column-gap: 40px; row-gap: 12px; margin: 18px 0 24px; }
+  body:not(.tv):not(.small):not(.phone) .hero .status { padding-top: 0; }
+}
+.speech { border: 0; max-width: 760px; }                         /* elevation once: a shadow, no border on top of it */
+.speech::before { border: 0; }
+:root[data-theme="heliotrope"] .speech { border: 1px solid var(--border); }
+:root[data-theme="heliotrope"] .speech::before { border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.speech .ctx { margin: 16px 0 0; max-width: 62ch; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.speech .c-more { margin-top: 10px; }
+.hero .status[hidden] { display: none; }
+.card.widget.alert, .card.widget.broken { box-shadow: none; }
+
+/* the brief: plain text, two lines until asked, closed on a rough morning */
+.card.brief { border: 0; border-radius: 0; padding: 0; margin: 0 0 26px; max-width: 70ch; background: none; }
+.brief::before { display: none; }
+.brief p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; }
+.brief.open p { display: block; overflow: visible; }
+.brief.closed p { display: none; }
+.brief.closed { margin-bottom: 18px; }
+.brief-more { margin-top: 6px; padding: 8px 0; min-height: 36px; background: none; border: 0; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.brief-more:hover { color: var(--text); }
+.brief.pending p { border-radius: 8px; }
+
+/* setup nag: a footer line, not a banner */
+footer .setup-strip { display: inline; margin: 0 0 0 12px; font-size: inherit; }
+footer .setup-strip .link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; min-height: 0; }
+
+/* ---------- TV: read from the couch, one screen, no scrolling ---------- */
+body.tv { height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding: 28px 56px 24px; font-size: 22px; }
+body.tv .top { margin-bottom: 12px; }
+body.tv .date { font-size: 28px; }
+body.tv .clock { font-size: 52px; line-height: 1; padding: 0; }
+body.tv .hero { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "buddy ring" "status status"; margin: 4px 0 14px; row-gap: 8px; }
+body.tv .hero .buddy { grid-template-columns: 132px minmax(0, 1fr); gap: 22px; }
+body.tv .hero .face.big { width: 132px; height: 132px; }
+body.tv .speech { max-width: none; padding: 22px 30px; border-radius: 28px; }
+body.tv .speech .who { font-size: 16px; }
+body.tv .speech .say { font-size: 40px; line-height: 1.2; max-width: 32ch; }
+body.tv .speech .ctx { font-size: 24px; margin-top: 12px; max-width: none; }
+body.tv .hero .status .chips .chip { font-size: 20px; padding: 8px 16px; }
+body.tv .card.brief { font-size: 26px; line-height: 1.45; max-width: none; margin: 0 0 18px; }
+body.tv .brief-more { display: none; }
+body.tv .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; align-content: stretch; gap: 24px; }
+body.tv .grid > .widget { display: none; }
+body.tv .grid > .widget.active { display: flex; min-height: 0; overflow: hidden; padding: 26px 30px; }
+body.tv .widget h2 { font-size: 18px; letter-spacing: .12em; }
+body.tv .widget h2 .icon { width: 36px; height: 36px; }
+body.tv .stat .v { font-size: 60px; }
+body.tv .stat .l { font-size: 20px; }
+body.tv .stat .s { font-size: 18px; }
+body.tv .items li { font-size: 24px; padding: 12px 0; }
+body.tv .items li .sub, body.tv .items li .b { font-size: 18px; }
+body.tv .items li:nth-child(n+6) { display: none; }
+body.tv .hint, body.tv .rt, body.tv .pname { font-size: 24px; }
+body.tv .rt-meta { font-size: 18px; }
+body.tv .dots-nav { display: flex; justify-content: center; gap: 10px; margin-top: 14px; }
+body.tv .dots-nav i { width: 12px; height: 12px; border-radius: 50%; background: var(--border); }
+body.tv .dots-nav i.on { background: var(--accent); }
+
+.brief[data-note]:not([data-note=""])::after { text-transform: none; letter-spacing: 0; font-family: inherit; font-size: 12.5px; margin-top: 4px; }
+
+/* ---------- Heliotrope's faces, bundled (no request leaves the machine) ---------- */
+@font-face { font-family: "IBM Plex Sans"; src: url(/fonts/IBMPlexSans-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; src: url(/fonts/IBMPlexSans-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url(/fonts/IBMPlexMono-300.woff2) format("woff2"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url(/fonts/IBMPlexMono-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Cormorant Garamond"; src: url(/fonts/CormorantGaramond-400-italic.woff2) format("woff2"); font-style: italic; font-weight: 400; font-display: swap; }
+@font-face { font-family: "Cormorant Garamond"; src: url(/fonts/CormorantGaramond-600-italic.woff2) format("woff2"); font-style: italic; font-weight: 600; font-display: swap; }
+
+/* ---------- type floor: nothing smaller than 12px; roles keep their order of size ---------- */
+.stat .s, .items li .sub { font-size: 12.5px; }
+.stat .l { font-size: 13px; }
+.widget h2, .alert-strip, .speech .who, .eyebrow, .items li .b, .delta, .glog, .pill-s, footer, .widget h2 .asof, .widget h2 .when { font-size: 12px; }
+:root[data-theme="heliotrope"] .widget h2 { font-size: 12px; }
+
+/* ---------- touch: 44px targets wherever the pointer is a finger; the skip link is a real target everywhere ---------- */
+.c-skip, .c-more { min-height: 36px; padding: 8px 4px; margin-top: 4px; }
+@media (pointer: coarse) {
+  .controls button, .controls select, .ask-chips button, .brief-more, .garden button, .c-skip, .c-more, .pick-form input { min-height: 44px; }
+  .controls button:not(.primary) { width: 44px; }
+  #setup-go { min-height: 44px; padding: 0 8px; }
+}
+
+/* TV: show fewer rows rather than cut one in half */
+body.tv .items li:nth-child(n+5) { display: none; }
+body.tv .stat .v { font-size: 48px; }
+body.tv .grid > .widget.active { gap: 14px; }
+
+.brief.closed[data-note]::after { display: none; }

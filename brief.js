@@ -27,6 +27,15 @@ export function facts(widgets) {
   }).filter(Boolean).join("\n");
 }
 
+// The model may only restate what the page knows. Advice nobody asked for ("keep the humidity up") and numbers that are
+// not in the data are caught here; the caller then shows the plain template instead. Returns why it was rejected, or null.
+const ADVICE = /\b(remember to|make sure|don['’]t forget|do not forget|be sure to|you should|you could|you might want|consider|try to|keep the|check for|keep an eye)\b/i;
+export function grounded(text, factsText) {
+  if (ADVICE.test(text)) return "it gave advice the page can't back up";
+  for (const n of String(text).match(/\d+(?:[.,]\d+)?/g) ?? []) if (!factsText.includes(n)) return `it used the number ${n}, which isn't in the data`;
+  return null;
+}
+
 // No model available: one honest sentence, no field names, no zeros.
 export function fallback({ widgets, name, evening, today }) {
   if (evening && today) return [today.headline, today.todo[0] ? `${today.todo[0]}.` : "", today.tail].filter(Boolean).join(" ");
@@ -55,11 +64,13 @@ async function eveningBrief(input, env, timeoutMs) {
     `Check-in streak: ${today.streak} days.`,
     ...widgets.filter((w) => w.status === "error").map((w) => `${w.title}: could not be checked (${w.error}).`),
   ].filter(Boolean).join("\n");
-  const system = `${persona(character, name)} You write a two-sentence end-of-day note for ${name}. Tone: ${tone || "warm, concise"}. First sentence: acknowledge what got done today, kindly, without exaggerating; if little got done, say that is fine. Second sentence: the one thing to set up for tomorrow, from the data. Plain text, no lists, no emoji. Use only the facts given. Write like a friend talking, not a report: never say "tracked", "tasks", "outcome" or "little to report".`;
+  const system = `${persona(character, name)} You write a two-sentence end-of-day note for ${name}. Tone: ${tone || "warm, concise"}. First sentence: acknowledge what got done today, kindly, without exaggerating; if little got done, say that is fine. Second sentence: what tomorrow starts with, taken only from the "Tomorrow" line; if there is no Tomorrow line, leave tomorrow out and do not suggest anything. Never give advice about the weather, plants, health or anything else that is not in the facts. Plain text, no lists, no emoji. Use only the facts given. Write like a friend talking, not a report: never say "tracked", "tasks", "outcome" or "little to report".`;
   const fallbackText = [today.headline, today.todo[0] ? `${today.todo[0]}.` : "", today.tail].filter(Boolean).join(" ");
   try {
     const text = await aiText({ model, system, messages: [{ role: "user", content: lines }], effort: "low", temperature: 0.6, signal: AbortSignal.timeout(timeoutMs) }, env);
-    return text ? { text, fromModel: true } : { text: fallbackText, fromModel: false, reason: "model returned nothing" };
+    if (!text) return { text: fallbackText, fromModel: false, reason: "model returned nothing" };
+    const bad = grounded(text, lines);
+    return bad ? { text: fallbackText, fromModel: false, reason: bad } : { text, fromModel: true };
   } catch (e) {
     return { text: fallbackText, fromModel: false, reason: e.name === "TimeoutError" ? `model took over ${Math.round(timeoutMs / 1000)}s` : e.message.slice(0, 80) };
   }
@@ -83,8 +94,11 @@ export async function brief(input, env, timeoutMs = +(env.BRIEF_TIMEOUT_MS || 20
   const system = `${persona(character, name)} You write a "start of day" brief for ${name}. Local time hour: ${hour}. Tone: ${tone || "warm, concise"}.${focus ? ` They say what usually steals their day is ${focus}; if the data hints at that, say so gently.` : ""}
 ${mood === "rough" ? "They said they feel rough this morning: one sentence, gentle, only the single most important thing. " : mood === "meh" ? "They feel meh: keep it to two short sentences. " : ""}Your job here is the picture of the day, not the to-do list: the next action is already suggested to them separately, so do not give instructions or say "please". Speak as yourself, using "I" at least once (for example "I only see…", "I'd keep an eye on…", "Looks like…"). Rules: plain text, no markdown, no lists, no headings, no emoji. One to three sentences, shorter is better. Say only what is new, changed, or worth knowing: things needing attention, the first event today, a number that moved, weather only if it changes plans. Never restate a zero, an unchanged number, or anything already obvious. If nothing needs them, say that in one short sentence and stop. Copy numbers exactly as digits from DATA. Do not invent data. A source that "could not be checked" must be mentioned as such in one clause; never claim all clear while one is broken.`;
   try {
-    const text = await aiText({ model, system, messages: [{ role: "user", content: `DATA:\n${facts(widgets)}` }], effort: "low", temperature: 0.6, signal: AbortSignal.timeout(timeoutMs) }, env);
-    return text ? { text, fromModel: true } : { text: fallback(input), fromModel: false, reason: "model returned nothing" };
+    const dataText = facts(widgets);
+    const text = await aiText({ model, system, messages: [{ role: "user", content: `DATA:\n${dataText}` }], effort: "low", temperature: 0.6, signal: AbortSignal.timeout(timeoutMs) }, env);
+    if (!text) return { text: fallback(input), fromModel: false, reason: "model returned nothing" };
+    const bad = grounded(text, dataText);
+    return bad ? { text: fallback(input), fromModel: false, reason: bad } : { text, fromModel: true };
   } catch (e) {
     return { text: fallback(input), fromModel: false, reason: e.name === "TimeoutError" ? `model took over ${Math.round(timeoutMs / 1000)}s` : e.message.slice(0, 80) };
   }

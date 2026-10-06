@@ -30,3 +30,12 @@ test("brief falls back to template when the model is unreachable", async () => {
   assert.match(text, /Test/);
   assert.match(text, /Inbox/);
 });
+
+test("grounded: advice and numbers the page doesn't have are caught, honest restatements pass", async () => {
+  const { grounded } = await import("../brief.js");
+  const data = "Garden: the sprout has not been watered yet today. Check-in streak: 11 days in a row.\nWeather: 36 clear, high 39.";
+  assert.equal(grounded("The sprout still needs water and your streak is at 11 days. It will reach 39 today.", data), null);
+  assert.match(grounded("Remember to keep the humidity up for the plant.", data), /advice/);
+  assert.match(grounded("It will hit 45 degrees this afternoon.", data), /number 45/);
+  assert.match(grounded("You should water it soon.", data), /advice/);
+});

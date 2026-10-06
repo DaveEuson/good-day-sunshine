@@ -13,6 +13,13 @@
   const mode = new URLSearchParams(location.search).get("mode");
   let tab = (() => { try { return localStorage.getItem("gds:phone-tab") || "today"; } catch { return "today"; } })();
 
+  // An empty chat offers a few starter questions (kept as hidden chips in the page so they stay editable in one place).
+  window.fillStarters = () => {
+    const log = $("#chat-log");
+    if (!log || log.querySelector(".msg") || log.querySelector(".starters")) return;
+    log.innerHTML = `<div class="starters"><p class="muted">Ask about your day, or tap one:</p>${[...document.querySelectorAll(".ask-chips [data-ask]")].map((b) => `<button type="button" data-start="${b.dataset.ask.replace(/"/g, "&quot;")}">${b.textContent}</button>`).join("")}</div>`;
+  };
+
   const bar = document.createElement("nav");
   bar.className = "phone-tabs";
   bar.setAttribute("aria-label", "Sections");
@@ -28,12 +35,9 @@
     for (const b of bar.querySelectorAll("[data-ptab]")) b.setAttribute("aria-current", String(b.dataset.ptab === tab));
     // cards: show the ones that belong to this tab (unknown types go to Updates)
     for (const card of document.querySelectorAll("#grid > .widget")) card.hidden = phone && (TAB_OF[card.dataset.type] ?? "updates") !== tab;
-    // chat is a whole tab on phones; an empty chat offers the same starters as the desktop ask bar
+    // chat is a whole tab on phones
     if (phone) $("#chat").hidden = tab !== "chat";
-    const log = $("#chat-log");
-    if (phone && tab === "chat" && log && !log.querySelector(".msg")) {
-      log.innerHTML = `<div class="starters"><p class="muted">Ask about your day, or tap one:</p>${[...document.querySelectorAll(".ask-chips [data-ask]")].map((b) => `<button type="button" data-start="${b.dataset.ask.replace(/"/g, "&quot;")}">${b.textContent}</button>`).join("")}</div>`;
-    }
+    if (phone && tab === "chat") window.fillStarters?.();
     // badges: urgent things on Today, new mail on Updates, unwatered plant on Garden
     const ws = window.data?.widgets ?? [];
     const urgent = ws.flatMap((w) => w.attention ?? []).filter((a) => a.level === "high").length + ws.filter((w) => w.status === "error").length;

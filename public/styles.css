@@ -21,7 +21,7 @@ a:hover { color: var(--accent); }
 .controls input[type=color] { width: 36px; height: 32px; padding: 2px; }
 
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
-.brief { margin-bottom: 20px; border-left: 4px solid var(--accent); font-size: 17px; line-height: 1.5; }
+.brief { margin-bottom: 20px; font-size: 17px; line-height: 1.5; }
 .brief p { margin: 0; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
@@ -470,7 +470,7 @@ body.small .grid > .widget.active { min-height: 200px; }
 /* morning routine */
 .routine h2 .when { margin-left: auto; font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 12px; }
 .rt-bar { height: 5px; border-radius: 999px; background: var(--border); overflow: hidden; margin-top: -4px; }
-.rt-bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.rt-bar i { display: block; width: 100%; height: 100%; background: var(--accent); transform-origin: left; transition: transform .3s var(--ease); }
 .rt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .rt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 2px; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--text); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
 .rt-list li:last-child .rt { border-bottom: 0; }
