@@ -52,3 +52,28 @@ test("companion: only offers to reply to people", () => {
   const s = suggest({ widgets: [{ type: "email", status: "ok", items: [{ text: "Build passed", badge: "CI", email: "noreply@ci.example", sub: "1h · ok" }] }], cfg: {}, now });
   assert.equal(s[0].kind, "clear");
 });
+
+test("companion: Claude Code insight only appears when those widgets are on, and only for real quiet or real spend", () => {
+  const day = 86_400_000, monday = new Date(2026, 9, 5, 8, 20).getTime(), tue = monday + day;
+  const rows = [
+    { name: "RigMatch", lastTs: monday - 3_600_000, sessions: 7, activeMs: 40 * 3_600_000, tokens: 44e6, usd: 1156 },
+    { name: "Slop24", lastTs: monday - 5 * day, sessions: 2, activeMs: 3 * 3_600_000, tokens: 5e6, usd: 69 },
+    { name: "Tiny", lastTs: monday - 6 * day, sessions: 1, activeMs: 60_000, tokens: 1000, usd: 0 },
+  ];
+  const cp = { type: "claudeprojects", status: "ok", claude: { days: 7, usd: 1225, rows } };
+  const left = { type: "claudeleft", status: "ok", left: [{ name: "Slop24", prompt: "add the retry logic to the uploader", title: "Uploader" }] };
+  assert.equal(suggest({ widgets: [], cfg: {}, now: monday })[0].kind, "clear", "nothing without the widgets");
+
+  const a = suggest({ widgets: [cp, left], cfg: { character: "sun" }, now: monday });
+  assert.deepEqual(a.map((x) => x.kind), ["claudeLeft", "claudeSpend"]);
+  assert.match(a[0].say, /Slop24 has been quiet for 5 days. Last time you asked: “add the retry logic to the uploader”/);
+  assert.deepEqual(a[0].actions.map((x) => x.act), ["focus", "scroll", "later"]);
+  assert.match(a[0].actions[0].arg, /Pick Slop24 back up: add the retry logic/);
+  assert.match(a[1].say, /\$1,156 of roughly \$1,225, went to RigMatch. That's an estimate/);
+
+  const b = suggest({ widgets: [cp], cfg: {}, now: tue });   // not Monday, and the prompt widget is off
+  assert.deepEqual(b.map((x) => x.kind), ["claudeQuiet"], "Tiny never counts (no real work), spend only on Mondays");
+  assert.equal(b[0].actions[0].act, "pickFocus");
+  assert.deepEqual(suggest({ widgets: [{ ...cp, status: "error", error: "x" }], cfg: {}, now: monday }).map((x) => x.kind), ["broken"], "a broken widget is reported, never used as data");
+  assert.equal(suggest({ widgets: [cp, left], cfg: {}, evening: true, today: { tomorrow: [] }, now: monday })[0].kind, "clear", "none of this in the evening");
+});

@@ -27,6 +27,7 @@ export async function fetchData(cfg, env, ctx) {
   }));
   if (prog.partial) items.push({ text: "Still reading older sessions…", sub: `${prog.done} of ${prog.total} files so far` });
   if (!rows.length && !prog.partial) items.push({ text: `Nothing in the last ${days} days.`, sub: "Open Claude Code in a project and it shows up here." });
-  return { stats, items, ...(prog.partial ? { partial: true, retryMs: 3000 } : {}) };
+  const claude = { days, usd: sum("usd"), rows: rows.slice(0, 30).map((r) => ({ name: r.name, lastTs: r.lastTs, sessions: r.sessions, activeMs: r.activeMs, tokens: r.tokens, usd: r.usd })) };   // for the companion
+  return { stats, items, claude, ...(prog.partial ? { partial: true, retryMs: 3000 } : {}) };
 }
 const agoMs = (r) => Date.now() - r.lastTs;

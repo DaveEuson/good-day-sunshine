@@ -28,6 +28,8 @@ npm install
 npm run build:exe        # → dist\GoodDaySunshine\ and dist\GoodDaySunshine-win-x64.zip
 ```
 
+**Keeping an installed copy current:** `npm run update:local` builds, stops the installed tray and server (`%LOCALAPPDATA%\GoodDaySunshine`, or `-Dest <folder>`), replaces the program files (exe, `public\`, `scripts\`, `extension\`) and starts it again. Profiles, `data\` and `.env` are never touched. `-NoBuild` reuses the last build.
+
 Node's single-executable build: esbuild bundles the server into one CommonJS file, `postject` injects it into a copy of `node.exe`. The exe reads `public\`, `config\`, `data\` and `.env` from its own folder. Unzip anywhere, run `GoodDaySunshine.exe` or `scripts\install.ps1` (which uses the exe when it sees one, no Node download). ~90 MB because it is a whole Node runtime. It is unsigned, so Windows SmartScreen will ask once. esbuild and postject are dev dependencies only; `npm start` from source still needs nothing.
 
 ## First run: the wake-up wizard
@@ -107,7 +109,7 @@ Set an alarm time and weekdays in Options (or in the wizard). Ten minutes before
 
 ## Your companion
 
-The character you picked (Sun, Cat, Robot, Cloud or Coffee) leads the page: a face and a speech bubble that picks **the one thing that matters now** and offers to help with it, one at a time. In the morning it first asks how you are; a rough morning gets one gentle suggestion, a meh one gets two. What it can suggest, most important first: a connection that broke (Fix it), someone waiting on you (Start 25 min together, Open it), a meeting coming up (pick one thing first / wrap up), new mail from a person, not a bot (Open it, Draft a reply with AI), your morning routine (tick the next step), the plant (Water it), a pile of notifications. In the evening: water the plant before bed, help prepping for tomorrow. **What else?** shows the next one; **Not now** hides it for the rest of the day. The bubble is built from fixed templates in `companion.js` (one line per situation per character), so it only states facts the page has; the AI brief below it describes the day in the same voice.
+The character you picked (Sun, Cat, Robot, Cloud or Coffee) leads the page: a face and a speech bubble that picks **the one thing that matters now** and offers to help with it, one at a time. In the morning it first asks how you are; a rough morning gets one gentle suggestion, a meh one gets two. What it can suggest, most important first: a connection that broke (Fix it), someone waiting on you (Start 25 min together, Open it), a meeting coming up (pick one thing first / wrap up), new mail from a person, not a bot (Open it, Draft a reply with AI), your morning routine (tick the next step), the plant (Water it), a pile of notifications, and (only if you switch on the Claude widgets) a project that had real work and has been quiet for 3+ days, with where you left off and a focus block to pick it back up, plus a Monday note when one project used most of the week's estimated Claude spend. In the evening: water the plant before bed, help prepping for tomorrow. **What else?** shows the next one; **Not now** hides it for the rest of the day. The bubble is built from fixed templates in `companion.js` (one line per situation per character), so it only states facts the page has; the AI brief below it describes the day in the same voice.
 
 ## Morning routine
 

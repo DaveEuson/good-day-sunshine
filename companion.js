@@ -10,6 +10,7 @@ const hm = (t) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", min
 const q = (s, n = 70) => { s = String(s ?? "").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 // Mail a person wrote, not a system: bots, no-reply and notification senders never get "draft a reply".
 export const fromAPerson = (name = "", email = "") => !/\[bot\]|\bbot\b|no-?reply|donotreply|do-not-reply|notifications?@|notify@|alerts?@|mailer|bounce|updates?@|news(letter)?@|marketing|info@|support@|team@|hello@/i.test(`${name} ${email}`);
+const money = (n) => `$${Math.round(n).toLocaleString("en-US")}`;
 const fill = (t, v) => t.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? "");
 
 // One line per situation per character. Facts come in through {slots}; only the wording changes.
@@ -76,6 +77,27 @@ export const VOICE = {
     robot: "No pending items. Select one task to advance?",
     cloud: "It's quiet. Would you like to choose one small thing to do?",
     coffee: "All clear. One thing?",
+  },
+  claudeLeft: {
+    sun: "{name} has been quiet for {n} days. Last time you asked: “{p}”. Want to pick it back up?",
+    cat: "{name}: {n} days of silence. You left off at “{p}”. I'd go back.",
+    robot: "{name} idle for {n} days. Last prompt: “{p}”. Resume with a focus block?",
+    cloud: "{name} has been waiting {n} days. You stopped at “{p}”. Whenever you're ready, we can start there.",
+    coffee: "{name}, {n}d quiet. “{p}”. Resume?",
+  },
+  claudeQuiet: {
+    sun: "{name} has been quiet for {n} days. Worth a look?",
+    cat: "{name} hasn't heard from you in {n} days.",
+    robot: "{name}: no activity for {n} days.",
+    cloud: "{name} has been quiet for {n} days, if you'd like to visit it.",
+    coffee: "{name}, {n}d quiet. Look?",
+  },
+  claudeSpend: {
+    sun: "Most of this past week's Claude spend, about {part} of roughly {total}, went to {name}. That's an estimate, but good to know.",
+    cat: "{name} ate about {part} of your roughly {total} Claude week. Estimated.",
+    robot: "Estimated Claude spend, 7 days: {total}. {name}: {part}.",
+    cloud: "Most of the week's Claude spend, about {part} of roughly {total}, was {name}. It's only an estimate.",
+    coffee: "{name}: ~{part} of ~{total} this week.",
   },
   eveningPlant: {
     sun: "Before bed: your {plant} hasn't had water today. One tap and it's done.",
@@ -155,6 +177,21 @@ export function suggest({ widgets = [], cfg = {}, today = null, evening = false,
 
   const med = (w("attention")?.attention ?? []).filter((x) => x.level !== "high");
   if (med.length >= 3) add({ id: "notifications", kind: "notifications", say: say("notifications", char, { n: med.length }), actions: [{ label: "Open GitHub", act: "open", arg: "https://github.com/notifications" }, LATER] });
+
+  // Claude Code insight, only when those widgets are on. A project that had real work and has gone quiet is worth a nudge;
+  // on Mondays, one project eating most of the week's spend is worth knowing. Estimates are called estimates.
+  const cp = w("claudeprojects")?.status === "ok" ? w("claudeprojects").claude : null;
+  const left = w("claudeleft")?.status === "ok" ? w("claudeleft").left : null;
+  if (cp?.rows?.length) {
+    const quiet = cp.rows.filter((r) => (r.activeMs >= 2 * 3_600_000 || r.tokens >= 1e6) && now - r.lastTs >= 3 * 86_400_000).sort((a, b) => b.tokens - a.tokens)[0];
+    if (quiet) {
+      const n = Math.floor((now - quiet.lastTs) / 86_400_000), name = q(quiet.name, 30), l = left?.find((x) => x.name === quiet.name && x.prompt);
+      if (l) add({ id: `claude-left-${quiet.name}`, kind: "claudeLeft", say: say("claudeLeft", char, { name, n, p: q(l.prompt, 90) }), actions: [{ label: "Pick it back up", act: "focus", arg: q(`Pick ${quiet.name} back up: ${l.prompt}`, 120) }, { label: "Show the list", act: "scroll", arg: "claudeleft" }, LATER] });
+      else add({ id: `claude-quiet-${quiet.name}`, kind: "claudeQuiet", say: say("claudeQuiet", char, { name, n }), actions: [left ? { label: "Where did I stop?", act: "scroll", arg: "claudeleft" } : { label: "Pick one thing", act: "pickFocus" }, LATER] });
+    }
+    const top = [...cp.rows].sort((a, b) => b.usd - a.usd)[0];
+    if (new Date(now).getDay() === 1 && cp.usd >= 100 && top && top.usd / cp.usd >= 0.6) add({ id: "claude-spend", kind: "claudeSpend", say: say("claudeSpend", char, { name: q(top.name, 30), part: money(top.usd), total: money(cp.usd) }), actions: [{ label: "See the list", act: "scroll", arg: "claudeprojects" }, LATER] });
+  }
 
   if (!out.length) out.push({ id: "clear", kind: "clear", say: say("clear", char, {}), actions: [{ label: "Pick one thing", act: "pickFocus" }] });
   return out;

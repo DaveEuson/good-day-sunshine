@@ -19,5 +19,6 @@ export async function fetchData(cfg, env, ctx) {
   }));
   if (prog.partial) items.push({ text: "Still reading older sessions…", sub: `${prog.done} of ${prog.total} files so far` });
   if (!items.length) items.push({ text: `No Claude Code sessions in the last ${days} days.`, sub: "Open Claude Code in a project and it shows up here." });
-  return { items, ...(prog.partial ? { partial: true, retryMs: 3000 } : {}) };
+  const left = rows.slice(0, 30).map((r) => ({ name: r.name, lastTs: r.lastTs, prompt: r.last.prompt, title: r.last.title }));   // for the companion
+  return { items, left, ...(prog.partial ? { partial: true, retryMs: 3000 } : {}) };
 }
