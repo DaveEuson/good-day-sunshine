@@ -75,6 +75,8 @@ Register it in `providers/index.js` (and add an `OPTION_FIELDS` entry so the Wid
 
 `public/themes.js`. One object per theme, six CSS variables (+ optional `page` gradient). `locked: true` themes are bought with garden tokens; costs in `garden.js`. A theme may name Google `fonts` (loaded only when it is picked; offline it falls back to the font stack) and add its own rules under `:root[data-theme="..."]` in `styles.css`.
 
+**Look and feel** (`public/ui2.css`, loaded after `styles.css`): Geist and Geist Mono (self-hosted in `public/fonts/`, SIL OFL, so nothing is fetched from the internet), one accent, quiet flat tiles that become raised cards only when something needs you, a 12-column asymmetric bento on wide screens (the `data-type` spans are at the top of the grid section), tinted shadows, and motion on transform and opacity only. Icons and the garden plants are inline SVG drawn in `public/ui.js` (no emoji anywhere in the interface), so they follow the theme colours and render the same on every device, including the Pi. Phone, TV and small-panel modes keep their own layouts.
+
 **Heliotrope** follows the art plate in `art/` (*Heliotropic Record*, Pl. VIII): paper, ink, one saffron accent, mono labels, and an italic serif for the companion's voice. The same plate, animated, is the loading screen (the sun crosses the sky and the seedling turns to follow); it only appears if loading takes more than a quarter second.
 
 ## The hero

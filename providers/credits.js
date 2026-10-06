@@ -64,7 +64,7 @@ const PROVIDERS = [
 
 export async function fetchData(cfg, env) {
   const active = PROVIDERS.filter((p) => (p.any ? p.keys.some((k) => env[k]) : p.keys.every((k) => env[k])));
-  if (!active.length) return { setup: "Add an Anthropic admin key, OpenAI admin key, OpenRouter key or DeepSeek key in ⚙ Options → Keys." };
+  if (!active.length) return { setup: "Add an Anthropic admin key, OpenAI admin key, OpenRouter key or DeepSeek key in Options → Keys." };
   const budget = cfg.budget ?? {};
   const stats = [], items = [], attention = [], errors = [];
   const month = new Date().toLocaleDateString(undefined, { month: "short" });

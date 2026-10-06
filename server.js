@@ -112,7 +112,7 @@ const json = (res, code, body) => {
 };
 async function body(req) { let b = ""; for await (const c of req) b += c; return b ? JSON.parse(b) : {}; }
 
-const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml" };
+const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".png": "image/png", ".ico": "image/x-icon" };
 
 const HOSTS = allowedHosts((env.ALLOWED_HOSTS || "").split(",").map((s) => s.trim()).filter(Boolean));
 http.createServer(async (req, res) => {

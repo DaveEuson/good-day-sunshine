@@ -33,7 +33,7 @@ async function feed(label, auth) {
 
 export async function fetchData(cfg, env) {
   const user = cfg.user ?? env.GMAIL_USER, pass = env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) return { setup: "Add your Gmail address and app password in ⚙ Options → Keys." };
+  if (!user || !pass) return { setup: "Add your Gmail address and app password in Options → Keys." };
   const auth = "Basic " + Buffer.from(`${user}:${pass}`).toString("base64");
   const folder = FOLDERS[cfg.folder] ?? FOLDERS.primary;
 

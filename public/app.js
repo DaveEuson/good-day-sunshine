@@ -32,7 +32,7 @@ function themeOptions(sel, allowLocked) {
   const was = sel.value;   // re-rendered when tokens change; keep the selection
   sel.innerHTML = Object.entries(THEMES).map(([k, t]) => {
     const locked = t.locked && !owned.includes(k);
-    return `<option value="${k}" ${locked && !allowLocked ? "disabled" : ""}>${t.name}${locked ? ` 🔒 ${costs[k] ?? ""}` : ""}</option>`;
+    return `<option value="${k}" ${locked && !allowLocked ? "disabled" : ""}>${t.name}${locked ? ` (locked, ${costs[k] ?? ""} tokens)` : ""}</option>`;
   }).join("");
   if (was) sel.value = was;
 }
@@ -84,7 +84,7 @@ function widget(w) {
     if (w.items?.length)
       body += `<ul class="items">${w.items.map((i) => `<li><span class="ti">${link(i, "t")}${esc(i.text)}${endLink(i)}${i.sub ? `<span class="sub">${esc(i.sub)}</span>` : ""}</span>${i.badge ? `<span class="b">${esc(i.badge)}</span>` : ""}</li>`).join("")}</ul>`;
   }
-  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${esc(w.icon ?? "•")}</span>${esc(w.title)}${w.stale ? `<span class="asof" title="Saved from last time. Fresh data is on its way.">as of ${esc(asOf(w.asOf))}</span>` : ""}</h2>${body}</section>`;
+  return `<section class="${cls}" data-wid="${w.id}" data-type="${esc(w.type)}">${urgent ? `<div class="alert-strip"><i></i>needs you</div>` : ""}<h2><span class="icon">${widgetIcon(w.type)}</span>${esc(w.title)}${w.stale ? `<span class="asof" title="Saved from last time. Fresh data is on its way.">as of ${esc(asOf(w.asOf))}</span>` : ""}</h2>${body}</section>`;
 }
 
 // ---------- Morning routine ----------
@@ -95,11 +95,11 @@ function routineCard(w) {
     const counter = it.target > 1;
     const meta = counter ? `${it.count} of ${it.target}${it.note ? " " + it.note : ""}` : it.note;
     return `<li><button type="button" class="rt ${it.done ? "done" : ""}" data-rt="${esc(it.id)}" aria-pressed="${it.done}">
-      <span class="rt-box">${counter && !it.done && it.count ? it.count : it.done ? "✓" : ""}</span><span class="rt-label">${esc(it.label)}</span>${meta ? `<span class="rt-meta">${esc(meta)}</span>` : ""}</button></li>`;
+      <span class="rt-box">${counter && !it.done && it.count ? it.count : it.done ? icon("check", 13) : ""}</span><span class="rt-label">${esc(it.label)}</span>${meta ? `<span class="rt-meta">${esc(meta)}</span>` : ""}</button></li>`;
   }).join("");
   const foot = r.complete ? `<p class="rt-foot">All done. That’s the morning handled.</p>` : "";
   return `<section class="card widget routine ${r.complete ? "complete" : ""}" data-wid="${w.id}" data-type="routine">
-    <h2><span class="icon">✓</span>${esc(w.title)}<span class="when">${r.done} of ${r.total}</span></h2>
+    <h2><span class="icon">${widgetIcon("routine")}</span>${esc(w.title)}<span class="when">${r.done} of ${r.total}</span></h2>
     <div class="rt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.total}" aria-valuenow="${r.done}"><i style="width:${pct}%"></i></div>
     <ul class="rt-list">${rows}</ul>${foot}</section>`;
 }
@@ -127,7 +127,7 @@ function noticedCard(w) {
   const buttons = n.nudge
     ? `<div class="row"><button data-n="yes" data-id="${esc(n.id)}">Yes please</button><button class="ghost" data-n="no" data-id="${esc(n.id)}">No thanks</button></div>`
     : `<div class="row"><button data-n="ok" data-id="${esc(n.id)}">${esc(n.ack ?? "Got it")}</button></div>`;
-  return `<section class="card widget noticed" data-wid="${w.id}" data-type="noticed"><h2><span class="icon">✦</span>${esc(w.title)}<span class="when">this week</span></h2>
+  return `<section class="card widget noticed" data-wid="${w.id}" data-type="noticed"><h2><span class="icon">${widgetIcon("noticed")}</span>${esc(w.title)}<span class="when">this week</span></h2>
     <div class="observe"><img src="${face}" width="44" height="44" alt=""><p>${esc(n.text)}</p></div>
     ${n.ask ? `<p class="ask-line">${esc(n.ask)}</p>` : ""}${buttons}
     <div class="eyebrow foot">noticed by ${esc(who)} · <button class="link" data-why="${esc(n.why)}">why?</button></div></section>`;
@@ -139,43 +139,44 @@ $("#grid").addEventListener("click", async (e) => {
   if (!b) return;
   const r = await fetch(`/api/notice/${b.dataset.n}?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: b.dataset.id }) }).then((r) => r.json());
   const card = b.closest(".noticed");
-  card.innerHTML = `<h2><span class="icon">✦</span>I noticed</h2><p class="hint">${b.dataset.n === "yes" ? "Done. I’ll nudge you." : b.dataset.n === "no" ? "Okay. I won’t bring it up again for a month." : "Noted."}</p>`;
+  card.innerHTML = `<h2><span class="icon">${widgetIcon("noticed")}</span>I noticed</h2><p class="hint">${b.dataset.n === "yes" ? "Done. I’ll nudge you." : b.dataset.n === "no" ? "Okay. I won’t bring it up again for a month." : "Noted."}</p>`;
   SFX.tap?.();
   if (r.nudges) { const w = data.widgets.find((x) => x.type === "noticed"); if (w) { w.nudges = r.nudges; w.todayNudges = r.nudges.filter((x) => x.day === new Date().getDay()); renderHero(data, user, () => { renderHero(data, user); loadBrief(); }); } }
 });
 
 // ---------- garden ----------
+const seedMini = (s) => plantSVG(s.id, 9, 10, { size: 26, label: "" });
 function gardenCard(w) {
   const g = gardenState = window.gardenState = w.garden ?? gardenState;
-  $("#tokens").textContent = `🪙 ${g.tokens} · 🔥 ${g.streak}`;
+  $("#tokens").innerHTML = `<span class="tk" title="Garden tokens">${icon("coin", 15)}${g.tokens}</span><span class="tk" title="Days in a row">${icon("flame", 15)}${g.streak}</span>`;
   renderThemePicker();
   const p = g.plantView;
   let body;
   if (p) {
     const dots = Array.from({ length: p.stages }, (_, i) => `<i class="${i <= p.stage ? "on" : ""}"></i>`).join("");
     body = `
-      <div class="plant ${p.wilted ? "wilted" : ""}"><div class="art">${p.art}</div>
+      <div class="plant ${p.wilted ? "wilted" : ""}"><div class="art">${plantSVG(p.seed, p.stage, p.stages, { wilted: p.wilted, size: 92, label: p.name })}</div>
         <div><div class="pname">${esc(p.name)}${p.wilted ? " · wilted" : p.ready ? " · ready!" : ""}</div><div class="dots">${dots}</div>
         <div class="hint">${p.ready ? `Harvest for +${p.harvest}` : p.wateredToday ? "Watered today. Come back tomorrow." : "Needs water."}</div></div></div>
       <div class="row">
-        ${p.ready ? `<button data-g="harvest">Harvest 🧺</button>` : `<button data-g="water" ${p.wateredToday ? "disabled" : ""}>Water 💧</button>`}
+        ${p.ready ? `<button data-g="harvest">Harvest</button>` : `<button data-g="water" ${p.wateredToday ? "disabled" : ""}>${icon("drop", 15)}Water</button>`}
         <button data-g="shop" class="ghost">Seeds & themes</button>
       </div>`;
   } else {
     body = `<p class="hint">Nothing planted. Pick a seed:</p>
-      <div class="seeds">${g.seeds.filter((s) => s.unlocked).map((s) => `<button data-g="plant" data-seed="${s.id}">${s.final} ${esc(s.name)}</button>`).join("")}</div>
+      <div class="seeds">${g.seeds.filter((s) => s.unlocked).map((s) => `<button data-g="plant" data-seed="${s.id}">${seedMini(s)}${esc(s.name)}</button>`).join("")}</div>
       <div class="row"><button data-g="shop" class="ghost">Seeds & themes</button></div>`;
   }
   const shop = `
     <div class="shop" hidden>
       <div class="hint">Seeds</div>
-      <div class="seeds">${g.seeds.map((s) => s.unlocked ? `<span class="owned">${s.final} ${esc(s.name)}</span>` : `<button data-g="buy" data-kind="seed" data-id="${s.id}" ${g.tokens < s.cost ? "disabled" : ""}>${s.final} ${esc(s.name)} · 🪙 ${s.cost}</button>`).join("")}</div>
+      <div class="seeds">${g.seeds.map((s) => s.unlocked ? `<span class="owned">${seedMini(s)}${esc(s.name)}</span>` : `<button data-g="buy" data-kind="seed" data-id="${s.id}" ${g.tokens < s.cost ? "disabled" : ""}>${seedMini(s)}${esc(s.name)} · ${icon("coin", 14)}${s.cost}</button>`).join("")}</div>
       <div class="hint">Themes</div>
-      <div class="seeds">${g.themes.map((t) => t.unlocked ? `<span class="owned">${esc(THEMES[t.id]?.name ?? t.id)}</span>` : `<button data-g="buy" data-kind="theme" data-id="${t.id}" ${g.tokens < t.cost ? "disabled" : ""}>${esc(THEMES[t.id]?.name ?? t.id)} · 🪙 ${t.cost}</button>`).join("")}</div>
-      ${g.harvested.length ? `<div class="hint">Harvested: ${g.harvested.map((h) => g.seeds.find((s) => s.id === h.seed)?.final ?? "").join(" ")}</div>` : ""}
+      <div class="seeds">${g.themes.map((t) => t.unlocked ? `<span class="owned">${esc(THEMES[t.id]?.name ?? t.id)}</span>` : `<button data-g="buy" data-kind="theme" data-id="${t.id}" ${g.tokens < t.cost ? "disabled" : ""}>${esc(THEMES[t.id]?.name ?? t.id)} · ${icon("coin", 14)}${t.cost}</button>`).join("")}</div>
+      ${g.harvested.length ? `<div class="hint">Harvested: ${g.harvested.map((h) => g.seeds.find((s) => s.id === h.seed)?.id ?? "").filter(Boolean).map((id) => plantSVG(id, 9, 10, { size: 26 })).join("")}</div>` : ""}
     </div>`;
   const log = g.log?.length ? `<div class="glog">${`<div>${esc(g.log[0])}</div>`}</div>` : "";
-  return `<section class="card widget garden" data-wid="${w.id}" data-type="garden"><h2><span class="icon">❀</span>${esc(w.title)}</h2>${body}${shop}${log}</section>`;
+  return `<section class="card widget garden" data-wid="${w.id}" data-type="garden"><h2><span class="icon">${widgetIcon("garden")}</span>${esc(w.title)}</h2>${body}${shop}${log}</section>`;
 }
 
 $("#grid").addEventListener("click", async (e) => {
@@ -551,7 +552,7 @@ const SECTIONS = [
 function renderKeys() {
   const groups = keySections();
   const block = (grp) => `<fieldset class="key-group ${grp.section}"><legend>${esc(grp.g)}</legend>
-    ${grp.note ? `<p class="key-note">${grp.section === "fix" ? "⚠ " : ""}${esc(grp.note)}</p>` : ""}
+    ${grp.note ? `<p class="key-note">${grp.section === "fix" ? icon("alert", 14, "inl") + " " : ""}${esc(grp.note)}</p>` : ""}
     ${grp.keys.map((k) => keyRow(k, grp.section === "fix")).join("")}</fieldset>`;
   const off = groups.filter((x) => x.section === "off");
   $("#key-list").innerHTML =
@@ -653,10 +654,13 @@ function wizard(existing) {
   runWizard({ existing, onDone: (slug) => { localStorage.setItem("ld:user", slug); location.href = `/?u=${slug}`; } });
 }
 let staleTimer = null, staleTries = 0;
+let firstPaint = false;
 async function load(refresh = false) {
   $("#status").textContent = "Loading…";
+  document.body.classList.add("loading");
   const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}${params.has("evening") ? "&evening=1" : ""}`);
   data = await r.json();
+  document.body.classList.remove("loading");
   document.getElementById("splash")?.remove();
   if (data.error) {
     if (user === "new" || r.status === 404) return wizard(null);
@@ -678,9 +682,11 @@ async function load(refresh = false) {
   const mood = getMood(user);
   const ready = data.widgets.filter((w) => w.status !== "setup" && !(mood === "rough" && w.type === "news")), pending = data.widgets.filter((w) => w.status === "setup"), broken = data.widgets.filter((w) => w.status === "error");
   $("#grid").innerHTML = ready.map(widget).join("");
+  [...$("#grid").children].forEach((el, i) => el.style.setProperty("--i", i));
+  if (!firstPaint) { firstPaint = true; $("#grid").classList.add("enter"); $("#hero-block").classList.add("enter"); setTimeout(() => { $("#grid").classList.remove("enter"); $("#hero-block").classList.remove("enter"); }, 1800); }
   window.phoneLayout?.();
   $("#setup-strip").hidden = !(pending.length || broken.length) || !!MODE;
-  $("#setup-strip").innerHTML = [broken.length ? `<span class="err">⚠ ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
+  $("#setup-strip").innerHTML = [broken.length ? `<span class="err">${icon("alert", 14, "inl")} ${broken.map((w) => `${esc(w.title)}: ${esc(w.error)}`).join(" · ")}</span>` : "", pending.length ? `Not set up yet: <b>${pending.map((w) => esc(w.title)).join(", ")}</b>` : ""].filter(Boolean).join(" &nbsp; ") + (pending.length || broken.length ? ` <button id="setup-go">${broken.length ? "Fix keys" : "Add keys"}</button>` : "");
   $("#setup-go")?.addEventListener("click", () => openSettings("keys"));
   $("#status").textContent = data.stale ? `Showing saved data for ${data.stale} card${data.stale === 1 ? "" : "s"} · updating…` : `Updated ${new Date().toLocaleTimeString()}`;
   // Saved data came back instantly; fresh fetches are running on the server. Check again shortly, a few times.

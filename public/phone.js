@@ -8,7 +8,7 @@
     email: "updates", news: "updates", github: "updates", youtube: "updates", twitch: "updates", credits: "updates", ai: "updates",
     garden: "garden",
   };
-  const TABS = [["today", "Today", "☀"], ["updates", "Updates", "▤"], ["garden", "Garden", "❀"], ["chat", "Chat", "✳"]];
+  const TABS = [["today", "Today", "sun"], ["updates", "Updates", "stack"], ["garden", "Garden", "leaf"], ["chat", "Chat", "chat"]];
   const mq = window.matchMedia("(max-width: 699px)");
   const mode = new URLSearchParams(location.search).get("mode");
   let tab = (() => { try { return localStorage.getItem("gds:phone-tab") || "today"; } catch { return "today"; } })();
@@ -16,7 +16,7 @@
   const bar = document.createElement("nav");
   bar.className = "phone-tabs";
   bar.setAttribute("aria-label", "Sections");
-  bar.innerHTML = TABS.map(([id, label, glyph]) => `<button type="button" data-ptab="${id}"><span class="g" aria-hidden="true">${glyph}</span><span>${label}</span><i class="badge" hidden></i></button>`).join("");
+  bar.innerHTML = TABS.map(([id, label, glyph]) => `<button type="button" data-ptab="${id}"><span class="g" aria-hidden="true">${icon(glyph, 20)}</span><span>${label}</span><i class="badge" hidden></i></button>`).join("");
   document.body.appendChild(bar);
 
   function apply() {

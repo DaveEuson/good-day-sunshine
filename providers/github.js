@@ -29,7 +29,7 @@ export const meta = { title: "GitHub", icon: "⌥" };
 export async function fetchData(cfg, env, ctx = {}) {
   const tok = await token(env);
   const user = cfg.user;
-  if (!user) return { setup: "Add your GitHub login to the GitHub widget in ⚙ Options." };
+  if (!user) return { setup: "Add your GitHub login to the GitHub widget in Options." };
   const window = Math.max(1, Math.min(90, +cfg.window || 14));
 
   const repos = await gh(`/users/${user}/repos?per_page=100&sort=updated`, tok);

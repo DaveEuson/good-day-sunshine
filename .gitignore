@@ -4,3 +4,5 @@ node_modules/
 config/users/*.local.json
 data/
 dist/
+
+design-pack/

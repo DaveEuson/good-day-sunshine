@@ -1,7 +1,7 @@
 // "Wake up" wizard: first-run onboarding, one conversational question at a time. Runs when a profile
 // has no `onboarded: true`, on ?setup=1, or from "+ New person" in the profile menu.
 // Answers land in config/users/<slug>.json (+ keys in .env) via the normal API, so everything is
-// editable later from ⚙ Options.
+// editable later from Options.
 window.runWizard = async function runWizard({ existing = null, onDone }) {
   const $w = document.getElementById("wizard");
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -104,7 +104,7 @@ window.runWizard = async function runWizard({ existing = null, onDone }) {
       const env = { ...a.keys, ...(a.model ? { OLLAMA_MODEL: a.model } : {}), ...(a.chatModel ? { CHAT_MODEL: a.chatModel } : {}) };
       if (Object.keys(env).length) { r = await (await fetch("/api/env", { method: "PUT", body: JSON.stringify(env) })).json(); if (r.error) throw new Error(r.error); }
       if (a.w.garden) await fetch(`/api/garden/plant?u=${slug}`, { method: "POST", body: JSON.stringify({ seed: "sprout" }) }).catch(() => {});
-      $w.innerHTML = `<div class="wz-card"><h1>Good day, ${esc(a.name)}.</h1><p class="hint">${a.w.garden ? "Your first seed is in the ground. Water it tomorrow." : "Your page is ready."} Everything you told me is in ⚙ Options if you change your mind.</p><div class="wz-nav"><span></span><button type="button" id="wz-go">Open my page</button></div></div>`;
+      $w.innerHTML = `<div class="wz-card"><h1>Good day, ${esc(a.name)}.</h1><p class="hint">${a.w.garden ? "Your first seed is in the ground. Water it tomorrow." : "Your page is ready."} Everything you told me is in Options if you change your mind.</p><div class="wz-nav"><span></span><button type="button" id="wz-go">Open my page</button></div></div>`;
       $w.querySelector("#wz-go").onclick = () => onDone(slug);
     } catch (err) {
       $w.innerHTML = `<div class="wz-card"><h1>That didn't save.</h1><p class="err">${esc(err.message)}</p><p class="hint">Settings can only be saved from the machine running the server.</p><div class="wz-nav"><span></span><button type="button" id="wz-retry">Try again</button></div></div>`;

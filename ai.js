@@ -12,7 +12,7 @@ const TIMEOUT = 60_000;
 
 let Anthropic = null;
 async function anthropic(env) {
-  if (!env.ANTHROPIC_API_KEY) throw new Error("Add your Anthropic API key in ⚙ Options → Keys to use Claude.");
+  if (!env.ANTHROPIC_API_KEY) throw new Error("Add your Anthropic API key in Options → Keys to use Claude.");
   Anthropic ??= (await import("@anthropic-ai/sdk")).default;
   return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 }
@@ -34,7 +34,7 @@ async function* claudeStream({ model, system, messages, effort = "low", signal }
 
 // OpenRouter: SSE "data: {...}" lines, OpenAI delta format.
 async function* openrouterStream({ model, system, messages, temperature = 0.5, signal }, env) {
-  if (!env.OPENROUTER_API_KEY) throw new Error("Add your OpenRouter API key in ⚙ Options → Keys to use OpenRouter models.");
+  if (!env.OPENROUTER_API_KEY) throw new Error("Add your OpenRouter API key in Options → Keys to use OpenRouter models.");
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     signal: signal ?? AbortSignal.timeout(TIMEOUT),
