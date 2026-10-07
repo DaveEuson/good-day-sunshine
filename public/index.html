@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="/ui2.css">
 </head>
 <body>
+<h1 id="page-title" class="sr-only">Good Day Sunshine</h1>
+<div id="announce" class="sr-only" role="status" aria-live="polite"></div>
 <div id="splash" class="splash" aria-label="Loading">
   <svg viewBox="0 0 320 200" width="320" height="200" aria-hidden="true">
     <path d="M30 170 A130 140 0 0 1 290 170" fill="none" class="sp-path"/>
@@ -32,7 +34,7 @@
 </div>
 <script>if (matchMedia("(prefers-reduced-motion: reduce)").matches) { const s = document.querySelector("#splash svg"); s.pauseAnimations(); s.setCurrentTime(2.4); }</script>
 <header class="top">
-  <div class="topbar-left"><span id="date" class="date"></span><span id="clock" class="clock"></span></div>
+  <div class="topbar-left"><span id="date" class="date"></span><span id="clock" class="clock"></span><span id="offline" class="offline" hidden></span></div>
   <div class="controls">
     <span id="tokens" class="pill" title="Garden tokens"></span>
     <select id="user" title="Profile" aria-label="Profile"></select>
@@ -45,7 +47,7 @@
   </div>
 </header>
 
-<section id="hero-block" class="hero"><h1 id="greeting" class="answer"><b>Good day, sunshine.</b></h1></section>
+<section id="hero-block" class="hero"><p class="answer"><b>Good day, sunshine.</b></p></section>
 
 <form id="ask" class="ask" autocomplete="off" hidden>
   <input id="ask-in" placeholder="Ask about your day…" aria-label="Ask the assistant">
@@ -58,7 +60,7 @@
 <main id="grid" class="grid"></main>
 <div id="dots" class="dots-nav"></div>
 
-<footer class="muted"><span id="status"></span> <span id="mode-hint"></span> <span id="setup-strip" class="setup-strip" hidden></span></footer>
+<footer class="muted"><span id="status" role="status"></span> <span id="mode-hint"></span> <span id="setup-strip" class="setup-strip" hidden></span></footer>
 
 <aside id="chat" class="chat" hidden>
   <div class="chat-head"><span>Assistant <span id="chat-model" class="muted"></span></span><button id="chat-clear" title="Clear" aria-label="Clear chat" data-icon="x" data-size="16"></button></div>

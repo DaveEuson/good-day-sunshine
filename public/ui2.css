@@ -332,3 +332,11 @@ body.rough .speech .say { font-size: 26px; max-width: 28ch; }
 .speech .ctx.sug { color: var(--text); font-size: 16px; margin-top: 12px; }
 .rough-links { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: 10px; }
 .rough-links .c-skip { margin-top: 0; }
+
+/* ---------- hardening: heading and announcer for screen readers, the offline cue ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+#offline { align-self: center; padding: 2px 10px; border: 1px solid var(--alert); border-radius: 999px; color: var(--alert); font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+@media (max-width: 699px) { .topbar-left { flex-wrap: wrap; row-gap: 4px; } }
+#status.bad { color: var(--alert); }
+body.offline .clock { opacity: .55; }
+body.tv #offline { font-size: 22px; padding: 4px 16px; }

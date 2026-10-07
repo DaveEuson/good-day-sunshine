@@ -115,7 +115,7 @@
     $("#hero-block").innerHTML = `
       <div class="buddy">
         <img class="face big" src="${face}" alt="" width="112" height="112">
-        <div class="speech" id="speech" aria-live="polite">${companionHTML(data, user)}</div>
+        <div class="speech" id="speech">${companionHTML(data, user)}</div>
       </div>
       <div class="hero-main status">
         ${chips ? `<div class="chips">${chips}</div>` : ""}
@@ -163,7 +163,7 @@
     $("#hero-block").innerHTML = `
       <div class="buddy">
         <img class="face big" src="${face}" alt="${esc(CHARACTERS[cfg.character] ?? "Sun")}" width="112" height="112">
-        <div class="speech" id="speech" aria-live="polite">${companionHTML(data, user)}</div>
+        <div class="speech" id="speech">${companionHTML(data, user)}</div>
       </div>
       ${ringHTML(ringNext)}
       <div class="hero-main status"${statusChips ? "" : " hidden"}><div class="chips">${statusChips}</div></div>`;

@@ -148,6 +148,8 @@ $("#grid").addEventListener("click", async (e) => {
 const seedMini = (s) => plantSVG(s.id, 9, 10, { size: 26, label: "" });
 function gardenCard(w) {
   const g = gardenState = window.gardenState = w.garden ?? gardenState;
+  $("#tokens").setAttribute("role", "img");
+  $("#tokens").setAttribute("aria-label", `${g.tokens} garden tokens, ${g.streak} day streak`);
   $("#tokens").innerHTML = `<span class="tk" title="Garden tokens">${icon("coin", 15)}${g.tokens}</span><span class="tk" title="Days in a row">${icon("flame", 15)}${g.streak}</span>`;
   renderThemePicker();
   const p = g.plantView;
@@ -674,10 +676,35 @@ function wizard(existing) {
 }
 let staleTimer = null, staleTries = 0;
 let firstPaint = false;
+// A failed load never blanks the page: the last good data stays, the page says since when it could not reach the
+// server, and it tries again with a growing pause (5 s, 10 s, 20 s, 40 s, then every minute).
+let offlineSince = 0, retryTimer = null, retryN = 0;
+const hhmm = (t) => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 async function load(refresh = false) {
+  clearTimeout(retryTimer);
+  try {
+    await loadOnce(refresh);
+    if (offlineSince) { offlineSince = 0; document.body.classList.remove("offline"); $("#offline").hidden = true; $("#status").classList.remove("bad"); }
+    retryN = 0;
+  } catch (e) {
+    document.body.classList.remove("loading");
+    document.getElementById("splash")?.remove();
+    offlineSince ||= Date.now();
+    document.body.classList.add("offline");
+    $("#offline").hidden = false;
+    $("#offline").textContent = `Offline since ${hhmm(offlineSince)}`;
+    $("#status").classList.add("bad");
+    $("#status").textContent = data ? `Can’t reach the server since ${hhmm(offlineSince)}. Showing saved data, trying again.` : "Can’t reach the dashboard server. Trying again.";
+    if (!data) $("#grid").innerHTML = `<p class="err">Can’t reach the dashboard server. <button type="button" class="link" id="retry-now">Try now</button></p>`;
+    $("#retry-now")?.addEventListener("click", () => load());
+    retryTimer = setTimeout(() => load(), Math.min(60_000, 5_000 * 2 ** retryN++));
+  }
+}
+async function loadOnce(refresh = false) {
   $("#status").textContent = "Loading…";
   document.body.classList.add("loading");
   const r = await fetch(`/api/dashboard?u=${encodeURIComponent(user)}${refresh ? "&refresh=1" : ""}${params.has("evening") ? "&evening=1" : ""}`);
+  if (r.status >= 500) throw new Error(`The server answered ${r.status}.`);
   data = await r.json();
   document.body.classList.remove("loading");
   document.getElementById("splash")?.remove();
@@ -694,6 +721,7 @@ async function load(refresh = false) {
   applyTheme(p.theme || data.theme, p.accent ?? data.accent);
   document.title = `${data.user} · Good Day Sunshine`;
   window.data = data;
+  $("#page-title").textContent = greeting(data.config?.name ?? data.user).replace(/\.$/, "");
   window.syncMood?.(user);
   $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
   gardenState = window.gardenState = data.widgets.find((w) => w.type === "garden")?.garden ?? null;

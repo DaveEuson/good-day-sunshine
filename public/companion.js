@@ -72,6 +72,7 @@
     if (fa) out.push({ label: clip(fa.arg), task: fa.arg });
     return out.slice(0, 4);
   }
+  window.announce = (t) => { const a = $("#announce"); if (!a || !t) return; a.textContent = ""; setTimeout(() => { a.textContent = t; }, 60); };
   window.pickerOpen = () => picking;
   window.openOneThing = function openOneThing(data, user) {
     const el = $("#speech");
@@ -97,9 +98,9 @@
       if (pk) return startPicked(pickChoices[+pk.dataset.pick].task);
       const m = e.target.closest("[data-cmood]");
       if (m) { const v = m.dataset.cmood === "reset" ? "" : m.dataset.cmood; setMood(user, v); ackShown = v === "skip" ? "" : v;   // skipping is recorded as skipping, not as "okay"
-       idx = 0; rerender(); loadBrief?.(); return; }
+       idx = 0; rerender(); announce($("#speech .say")?.textContent); loadBrief?.(); return; }
       if (e.target.closest("[data-rough-toggle]")) { toggleRoughOpen(); rerender(); return; }
-      if (e.target.closest("[data-cnext]")) { idx++; ackShown = ""; rerender(); SFX.tap?.(); return; }
+      if (e.target.closest("[data-cnext]")) { idx++; ackShown = ""; rerender(); announce($("#speech .say")?.textContent); SFX.tap?.(); return; }
       const b = e.target.closest("[data-cact]");
       if (!b) return;
       const act = b.dataset.cact, arg = b.dataset.carg;
@@ -107,7 +108,7 @@
       ackShown = "";
       if (act === "later") {
         if (cur) { later.add(cur.id); fetch(`/api/companion/later?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: cur.id }) }).catch(() => {}); }
-        rerender(); return;
+        rerender(); announce($("#speech .say")?.textContent); return;
       }
       if (act === "focus") return startFocus(arg, user, { onDone: () => load() });
       if (act === "pickFocus") return pickFocusTask();
