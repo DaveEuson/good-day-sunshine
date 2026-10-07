@@ -35,6 +35,6 @@ Write-Host "starting..."
 Start-Process powershell -ArgumentList "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $Dest 'scripts\tray.ps1')`"" -WindowStyle Hidden
 $ok = $false   # up to 3 minutes: a freshly written 90 MB exe is scanned by Defender before it starts
 for ($i = 0; $i -lt 360 -and -not $ok; $i++) { Start-Sleep -Milliseconds 500; if ($i -eq 40) { Write-Host "still starting (Windows is scanning the new exe)..." }; try { Invoke-WebRequest "http://localhost:4242/api/users" -UseBasicParsing -TimeoutSec 1 | Out-Null; $ok = $true } catch {} }
-if (-not $ok) { throw "Updated, but the server did not answer on http://localhost:4242 within 3 minutes." }
+if (-not $ok) { Write-Warning "Updated. The server has not answered yet (Windows scans a new exe before it starts); give it a minute, then open http://localhost:4242."; exit 0 }
 $mb = [math]::Round((Get-Item (Join-Path $Dest "GoodDaySunshine.exe")).Length / 1MB, 1)
 Write-Host "updated $Dest ($mb MB). Running at http://localhost:4242. Your data was left alone."
