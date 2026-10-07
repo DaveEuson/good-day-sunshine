@@ -323,3 +323,12 @@ body.tv .grid > .widget.active { gap: 14px; }
 
 /* the brief is background reading: smaller and quieter than the bubble that speaks first */
 .card.brief { font-size: 15px; line-height: 1.55; color: color-mix(in srgb, var(--text) 82%, var(--muted)); }
+
+/* ---------- rough morning: the companion, one sentence, one button; the rest is a deliberate tap ---------- */
+body.rough:not(.rough-open):not(.phone) :is(#grid, #brief, footer, .ask, #dots) { display: none; }
+body.phone.rough:not(.rough-open)[data-ptab="today"] :is(#grid, #brief) { display: none; }
+body.rough:not(.rough-open) .hero { margin-top: clamp(24px, 9vh, 110px); }
+body.rough .speech .say { font-size: 26px; max-width: 28ch; }
+.speech .ctx.sug { color: var(--text); font-size: 16px; margin-top: 12px; }
+.rough-links { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: 10px; }
+.rough-links .c-skip { margin-top: 0; }

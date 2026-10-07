@@ -14,6 +14,7 @@ import * as notice from "./notice.js";
 import * as routine from "./routine.js";
 import { todaySummary, eveningDay, isEvening } from "./evening.js";
 import * as companion from "./companion.js";
+import * as moodStore from "./mood.js";
 import { createStore } from "./swr.js";
 import { allowedHosts, hostOk, originOk, envValueOk } from "./guard.js";
 
@@ -53,6 +54,7 @@ const gardens = garden.store(path.join(DATA, "garden"));
 const notices = notice.store(path.join(DATA, "notices"));
 const routines = routine.store(path.join(DATA, "routine"));
 const companions = companion.store(path.join(DATA, "companion"));
+const moods = moodStore.store(path.join(DATA, "mood"));
 const routineItems = (user) => routine.parseItems(loadUser(user)?.widgets.find((w) => w.type === "routine")?.items ?? []);
 
 function noticeCandidates(user) {
@@ -136,7 +138,7 @@ http.createServer(async (req, res) => {
       const rw = cfg.widgets.find((w) => w.type === "routine");
       const today = todaySummary({ garden: gardens.load(user), routine: rw ? routine.today(routines.load(user), routine.parseItems(rw.items ?? []), eveNow) : null, cfg, widgets, now: eveNow });
       const suggestions = companion.suggest({ widgets, cfg, today, evening: isEvening(cfg) || url.searchParams.has("evening"), later: companions.later(user) });
-      return json(res, 200, { today, companion: suggestions, user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
+      return json(res, 200, { today, companion: suggestions, mood: moods.get(user), user: cfg.name, theme: cfg.theme, accent: cfg.accent, brief: cfg.brief, config: cfg, widgets, stale: widgets.filter((w) => w.stale).length, chatModel: env.CHAT_MODEL || "llama3.2:3b" });
     }
 
     // Compact text-ish view for microcontrollers / e-paper / TTS. No HTML needed.
@@ -234,6 +236,11 @@ http.createServer(async (req, res) => {
       try { for await (const text of stream) res.write(JSON.stringify({ message: { content: text } }) + "\n"); }
       catch (e) { res.write(JSON.stringify({ message: { content: `\n[${e.message}]` } }) + "\n"); }
       return res.end();
+    }
+
+    if (url.pathname === "/api/mood" && req.method === "POST") {
+      const { kind, mood } = await body(req);
+      try { return json(res, 200, { mood: moods.set(user, kind, mood || "") }); } catch (e) { return json(res, 400, { error: e.message }); }
     }
 
     if (url.pathname === "/api/companion/later" && req.method === "POST") {

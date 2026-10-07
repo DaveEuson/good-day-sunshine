@@ -6,8 +6,33 @@
   const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };   // local day, not UTC
   const moodKey = (u) => `gds:mood:${u}:${todayKey()}`;
 
-  window.getMood = (u) => localStorage.getItem(moodKey(u)) || "";
-  const setMood = window.setMood = (u, m) => { if (m) localStorage.setItem(moodKey(u), m); else localStorage.removeItem(moodKey(u)); };
+  // The server keeps today's mood so every screen agrees; localStorage is the fallback while it cannot be reached.
+  const post = (u, kind, mood) => fetch(`/api/mood?u=${encodeURIComponent(u)}`, { method: "POST", body: JSON.stringify({ kind, mood: mood || "" }) }).catch(() => {});
+  const read = (u, kind, key) => { const m = window.data?.mood; return m ? (m[kind] ?? "") : (localStorage.getItem(key(u)) || ""); };
+  const write = (u, kind, key, v) => {
+    if (window.data) { const m = (window.data.mood ??= { day: todayKey() }); if (v) m[kind] = v; else delete m[kind]; }
+    if (v) localStorage.setItem(key(u), v); else localStorage.removeItem(key(u));
+    post(u, kind, v);
+  };
+  window.getMood = (u) => read(u, "morning", moodKey);
+  const setMood = window.setMood = (u, v) => { write(u, "morning", moodKey, v); window.applyMoodClass?.(u); };
+  // An answer given before the server kept moods (or while it was unreachable) is sent up once.
+  window.syncMood = (u) => {
+    const m = window.data?.mood; if (!m) return;
+    for (const [kind, key] of [["morning", moodKey], ["evening", eveKey]]) { const local = localStorage.getItem(key(u)); if (local && !m[kind]) { m[kind] = local; post(u, kind, local); } }
+  };
+  // Rough mornings collapse the page to the companion; "Show everything" opens it again for the rest of the day.
+  window.applyMoodClass = (u) => {
+    const rough = !isEvening(window.data?.config) && getMood(u) === "rough";
+    let open = false; try { open = sessionStorage.getItem(`gds:rough-open:${todayKey()}`) === "1"; } catch {}
+    document.body.classList.toggle("rough", rough);
+    document.body.classList.toggle("rough-open", rough && open);
+  };
+  window.toggleRoughOpen = () => {
+    const open = !document.body.classList.contains("rough-open");
+    try { sessionStorage.setItem(`gds:rough-open:${todayKey()}`, open ? "1" : "0"); } catch {}
+    document.body.classList.toggle("rough-open", open);
+  };
 
   const greet = (name, mood) => {
     const h = new Date().getHours();
@@ -81,7 +106,7 @@
   const eveKey = (u) => `gds:eve:${u}:${todayKey()}`;
   function renderEvening(data, user, onMood, a) {
     const cfg = data.config, t = THEMES[document.documentElement.dataset.theme] ?? {}, d = data.today;
-    const mood = localStorage.getItem(eveKey(user)) || "";
+    const mood = read(user, "evening", eveKey);
     const face = faceURI(cfg.character || "sun", a.broken.length > 0 || a.high.length > 0, getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || t.accent, t.card || "#fff", t.alert || "#c0341d", skinFor());
     const chips = [
       a.broken.length ? `<span class="chip alert">${esc(a.broken.map((w) => w.title).join(", "))} can’t connect</span>` : "",
@@ -100,7 +125,7 @@
     $("#hero-block").querySelector(".status").onclick = (e) => {
       const b = e.target.closest("[data-eve]");
       if (!b) return;
-      if (mood === b.dataset.eve) localStorage.removeItem(eveKey(user)); else localStorage.setItem(eveKey(user), b.dataset.eve);
+      write(user, "evening", eveKey, mood === b.dataset.eve ? "" : b.dataset.eve);
       onMood?.();
     };
     document.body.classList.add("evening");
@@ -109,6 +134,7 @@
 
   window.renderHero = function renderHero(data, user, onMood) {
     if (window.pickerOpen?.()) return;   // a refresh must not wipe what you are typing
+    window.applyMoodClass?.(user);
     const ws = data.widgets;
     const cfg = data.config;
     const mood = getMood(user);

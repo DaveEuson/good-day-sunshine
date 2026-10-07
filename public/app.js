@@ -694,6 +694,7 @@ async function load(refresh = false) {
   applyTheme(p.theme || data.theme, p.accent ?? data.accent);
   document.title = `${data.user} · Good Day Sunshine`;
   window.data = data;
+  window.syncMood?.(user);
   $("#date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
   gardenState = window.gardenState = data.widgets.find((w) => w.type === "garden")?.garden ?? null;
   renderHero(data, user, () => { renderHero(data, user); loadBrief(); });

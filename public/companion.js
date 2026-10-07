@@ -15,7 +15,7 @@
   const MOODS = [["great", "Great"], ["okay", "Okay"], ["meh", "Meh"], ["rough", "Rough"]];
   const PICK = { sun: "What's the one thing?", cat: "One thing. Pick.", robot: "Select one task.", cloud: "What would feel good to do first?", coffee: "One thing?" };
   let idx = 0, ackShown = "";
-  let picking = false, pickChoices = [];
+  let picking = false, pickChoices = [], shown = null;   // shown: the suggestion on screen, so "Not now" hides that one
   let later = new Set();
 
   window.companionHTML = function companionHTML(data, user) {
@@ -32,11 +32,22 @@
       const t = mood === "rough" ? "" : evening ? (data.today ? `${esc(data.today.headline)} ${esc(data.today.tail)}`.trim() : "") : (window.dayLine?.(data, tailOnly) ?? "");
       return t ? `<p class="ctx">${t}</p>` : "";
     };
+    if (mood === "rough" && !evening) {
+      idx = 0;
+      // a rough morning is offered the gentle things (a broken source, someone waiting, the basics), not mail, notifications or project nudges
+      const SOFT = new Set(["mail", "notifications", "clear", "claudeLeft", "claudeQuiet", "claudeSpend"]);
+      const s = shown = (data.companion ?? []).filter((x) => !later.has(x.id) && !SOFT.has(x.kind))[0] ?? null, act = s?.actions?.[0];
+      const open = document.body.classList.contains("rough-open");
+      return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div>
+        <p class="say">${esc(ACK.rough[c] ?? ACK.rough.sun)}</p>
+        ${s ? `<p class="ctx sug">${esc(s.say)}</p><div class="c-actions"><button type="button" class="c-btn" data-cact="${esc(act.act)}" data-carg="${esc(act.arg ?? "")}">${esc(act.label)}</button></div>` : `<p class="ctx sug">Nothing needs you right now.</p>`}
+        <div class="rough-links"><button type="button" class="c-skip" data-rough-toggle>${open ? "Hide the rest" : "Show everything"}</button>${s ? `<button type="button" class="c-skip" data-cact="later" data-carg="">Not now</button>` : ""}<button type="button" class="c-skip" data-cmood="reset">I feel different</button></div>`;
+    }
     const max = mood === "rough" ? 1 : mood === "meh" ? 2 : Infinity;
     const list = (data.companion ?? []).filter((s) => !later.has(s.id)).slice(0, max);
     if (!list.length) return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div><p class="say">That's everything I'd suggest right now. Want to pick one thing anyway?</p><div class="c-actions"><button type="button" class="c-btn ghost" data-cact="pickFocus" data-carg="">Just one thing</button></div>${ctxP(true)}`;
     idx = idx % list.length;
-    const s = list[idx];
+    const s = shown = list[idx];
     const ack = ackShown === mood && mood && ACK[mood] ? `<span class="ack">${esc(ACK[mood][c] ?? ACK[mood].sun)}</span> ` : "";
     const btn = (a, i) => `<button type="button" class="c-btn ${i === 0 ? "" : "ghost"}" data-cact="${esc(a.act)}" data-carg="${esc(a.arg ?? "")}">${esc(a.label)}</button>`;
     return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div>
@@ -85,13 +96,14 @@
       const pk = e.target.closest("[data-pick]");
       if (pk) return startPicked(pickChoices[+pk.dataset.pick].task);
       const m = e.target.closest("[data-cmood]");
-      if (m) { const v = m.dataset.cmood; setMood(user, v); ackShown = v === "skip" ? "" : v;   // skipping is recorded as skipping, not as "okay"
+      if (m) { const v = m.dataset.cmood === "reset" ? "" : m.dataset.cmood; setMood(user, v); ackShown = v === "skip" ? "" : v;   // skipping is recorded as skipping, not as "okay"
        idx = 0; rerender(); loadBrief?.(); return; }
+      if (e.target.closest("[data-rough-toggle]")) { toggleRoughOpen(); rerender(); return; }
       if (e.target.closest("[data-cnext]")) { idx++; ackShown = ""; rerender(); SFX.tap?.(); return; }
       const b = e.target.closest("[data-cact]");
       if (!b) return;
       const act = b.dataset.cact, arg = b.dataset.carg;
-      const cur = (data.companion ?? []).filter((s) => !later.has(s.id))[idx];
+      const cur = shown;
       ackShown = "";
       if (act === "later") {
         if (cur) { later.add(cur.id); fetch(`/api/companion/later?u=${encodeURIComponent(user)}`, { method: "POST", body: JSON.stringify({ id: cur.id }) }).catch(() => {}); }
