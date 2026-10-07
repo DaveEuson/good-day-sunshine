@@ -5,7 +5,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { isSea } from "node:sea";
 import { providers, OPTION_FIELDS, KEYS } from "./providers/index.js";
-import { brief, fallback } from "./brief.js";
+import { brief, fallback, warmBrief } from "./brief.js";
 import { chat } from "./chat.js";
 import { CLAUDE_MODELS, openrouterModels, ollamaModels, provider } from "./ai.js";
 import { openHistory } from "./history.js";
@@ -89,9 +89,11 @@ async function runWidget(w, i, user, force = false) {
   if (!p) return { ...base, status: "error", error: `Unknown widget type "${w.type}".` };
   const hkey = `${user}:${w.key ?? w.type}`;
   try {
-    const { value: data, at, stale } = await widgetCache.get(`${user}:${JSON.stringify(w)}`, async () => {
+    // Units is one setting for the person (Options, You); a widget-level value is only the older way of setting it.
+    const eff = w.type === "weather" ? { ...w, units: loadUser(user)?.units ?? w.units ?? "auto" } : w;
+    const { value: data, at, stale } = await widgetCache.get(`${user}:${JSON.stringify(eff)}`, async () => {
       const t0 = Date.now();
-      const d = await p.fetchData(w, env, { history, dataDir: DATA });
+      const d = await p.fetchData(eff, env, { history, dataDir: DATA });
       if (env.GDS_TIMING) console.log(`[timing] ${w.type} ${Date.now() - t0}ms`);
       if (d.stats && !d.error && !d.setup) history.record(hkey, d.stats);
       return d;
@@ -128,6 +130,7 @@ http.createServer(async (req, res) => {
       if (!cfg) return json(res, 404, { error: `No config/users/${user}.json` });
       const force = url.searchParams.has("refresh");
       if (force) cache.clear();
+      if (cfg.brief?.enabled !== false) warmBrief(env);   // the model loads while the widgets do
       const widgets = await Promise.all(cfg.widgets.map((w, i) => runWidget(w, i, user, force)));
       const eveNow = eveningDay(Date.now());
       const rw = cfg.widgets.find((w) => w.type === "routine");

@@ -201,7 +201,7 @@ function greeting(name) {
   return `${g}, ${name}.`;
 }
 // Template shows instantly; the model's text swaps in when it lands (or the template stays, with a note).
-let briefSeq = 0;
+let briefSeq = 0, briefRetried = false;
 async function loadBrief() {
   if (!data.brief?.enabled) { $("#brief").hidden = true; return; }
   $("#brief").hidden = false;
@@ -212,8 +212,10 @@ async function loadBrief() {
   const show = (j) => {
     if (seq !== briefSeq) return;
     $("#brief").classList.toggle("pending", !!j.pending);
-    const why = /took over/.test(j.reason ?? "") ? "the AI model was too slow" : /nothing/.test(j.reason ?? "") ? "the AI model had nothing to say" : j.reason || "no AI model is set up";
-    $("#brief").dataset.note = j.pending ? "Writing…" : j.fromModel ? "" : `Plain summary: ${why}.`;
+    const slow = /took over/.test(j.reason ?? "");
+    const why = slow ? "the AI model is still waking up, I'll try again in a minute" : /nothing/.test(j.reason ?? "") ? "the AI model had nothing to say" : j.reason || "no AI model is set up";
+    $("#brief").dataset.note = j.pending ? "Writing…" : j.fromModel ? "" : `Plain summary for now: ${why}.`;
+    if (slow && !j.pending && !briefRetried) { briefRetried = true; setTimeout(() => { if (seq === briefSeq) loadBrief(); }, 60_000); }
     const rough = !evening && getMood(user) === "rough";
     $("#brief").className = `card brief${j.pending ? " pending" : ""}${rough ? " closed" : ""}`;
     $("#brief").innerHTML = `<p>${esc(j.text || j.error)}</p><button type="button" class="brief-more" hidden>More</button>`;
@@ -311,6 +313,7 @@ async function openSettings(tab = "you") {
   f.name.value = cfg.name ?? "";
   themeOptions($("#settings-theme"), true);
   f.theme.value = cfg.theme ?? "sunrise";
+  f.units.value = cfg.units ?? cfg.widgets?.find((w) => w.type === "weather")?.units ?? "auto";
   renderCharacters(cfg.character ?? "sun");
   f.accentOn.checked = !!cfg.accent;
   f.accentPick.value = cfg.accent || (THEMES[f.theme.value]?.accent ?? "#d1620a");
@@ -496,6 +499,7 @@ function readWidgetRows() {
     let orig = {};
     try { orig = JSON.parse(r.dataset.orig || "{}"); } catch {}
     const out = { ...orig, type, on };
+    if (type === "weather") delete out.units;   // now one setting for the person, on the You tab
     if (title) out.title = title; else delete out.title;
     for (const el of r.querySelectorAll("[data-k]")) {
       const raw = el.value.trim();
@@ -593,7 +597,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     const widgets = readWidgetRows().filter((w) => w.on).map(({ on, ...w }) => w);
     const days = [...f.querySelectorAll("[name=alarmDay]:checked")].map((c) => +c.value);
     const cfg = {
-      ...data.config, name: f.name.value.trim(), theme: f.theme.value, character: f.character.value,
+      ...data.config, name: f.name.value.trim(), theme: f.theme.value, character: f.character.value, units: f.units.value,
       accent: f.accentOn.checked ? f.accentPick.value : null,
       brief: { ...data.config.brief, enabled: f.briefEnabled.checked, tone: f.tone.value },
       sound: f.sound.checked,

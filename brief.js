@@ -1,5 +1,6 @@
 // AI "good morning" brief. Provider picked by OLLAMA_MODEL prefix (local Ollama, claude-*, openrouter/*); template fallback if it fails.
-import { aiText } from "./ai.js";
+import { aiText, warmOllama } from "./ai.js";
+export const warmBrief = (env) => warmOllama(env.OLLAMA_MODEL || "qwen3.5:9b", env);
 
 // Short human facts per widget. Failed checks are stated as failures, never as zeros.
 export function facts(widgets) {
@@ -86,7 +87,7 @@ const CHARACTER = {
 };
 const persona = (c, name) => `You are ${CHARACTER[c] ?? CHARACTER.sun}. You are on ${name}'s side and want their day to go well. Speak to ${name} in first person ("I", "you"), like someone who is here to help, not a report.`;
 
-export async function brief(input, env, timeoutMs = +(env.BRIEF_TIMEOUT_MS || 20_000)) {
+export async function brief(input, env, timeoutMs = +(env.BRIEF_TIMEOUT_MS || 30_000)) {
   const { widgets, name, tone, focus, mood, evening, today, character } = input;
   const model = env.OLLAMA_MODEL || "qwen3.5:9b";
   const hour = new Date().getHours();

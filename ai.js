@@ -62,7 +62,7 @@ async function* ollamaStream({ model, system, messages, temperature = 0.5, signa
   const r = await fetch(`${url}/api/chat`, {
     method: "POST",
     signal: signal ?? AbortSignal.timeout(TIMEOUT),
-    body: JSON.stringify({ model, stream: true, think, messages: [{ role: "system", content: system }, ...messages], options: { temperature } }),
+    body: JSON.stringify({ model, stream: true, think, keep_alive: env.OLLAMA_KEEP_ALIVE || "30m", messages: [{ role: "system", content: system }, ...messages], options: { temperature } }),
   });
   if (!r.ok) throw new Error(`ollama ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const dec = new TextDecoder();
@@ -72,6 +72,14 @@ async function* ollamaStream({ model, system, messages, temperature = 0.5, signa
     const lines = buf.split("\n"); buf = lines.pop();
     for (const l of lines) { if (!l) continue; try { const t = JSON.parse(l).message?.content; if (t) yield t; } catch {} }
   }
+}
+
+// Loading a 9B model takes longer than the brief is willing to wait, so wake it before it is asked (at most every 10 min per model).
+const woken = new Map();
+export function warmOllama(model, env) {
+  if (isClaude(model) || isOpenRouter(model) || Date.now() - (woken.get(model) ?? 0) < 600_000) return;
+  woken.set(model, Date.now());
+  fetch(`${env.OLLAMA_URL || "http://localhost:11434"}/api/generate`, { method: "POST", signal: AbortSignal.timeout(120_000), body: JSON.stringify({ model, keep_alive: env.OLLAMA_KEEP_ALIVE || "30m" }) }).catch(() => woken.delete(model));
 }
 
 export function aiStream(opts, env) {

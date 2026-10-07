@@ -48,7 +48,6 @@ export const OPTION_FIELDS = {
   ],
   weather: [
     { k: "city", label: "City", type: "text", ph: "blank = guess from your network" },
-    { k: "units", label: "Units", type: "select", options: [["c", "°C"], ["f", "°F"]], def: "c" },
   ],
   email: [
     { k: "folder", label: "Count mail in", type: "select", options: [["primary", "Primary tab"], ["important", "Important"], ["inbox", "Whole inbox"]], def: "primary" },
