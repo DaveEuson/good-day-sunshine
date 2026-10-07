@@ -320,3 +320,6 @@ body.tv .stat .v { font-size: 48px; }
 body.tv .grid > .widget.active { gap: 14px; }
 
 .brief.closed[data-note]::after { display: none; }
+
+/* the brief is background reading: smaller and quieter than the bubble that speaks first */
+.card.brief { font-size: 15px; line-height: 1.55; color: color-mix(in srgb, var(--text) 82%, var(--muted)); }

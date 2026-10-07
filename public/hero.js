@@ -62,10 +62,10 @@
   setInterval(tickRing, 15_000);
 
   // The one-line state of the day, shown quietly under the companion's suggestion (the bubble leads; this is its context).
-  window.dayLine = (data) => {
+  window.dayLine = (data, tailOnly = false) => {
     const ws = data.widgets, next = ws.find((w) => w.type === "calendar")?.next ?? null;
     const a = answer(ws, next && new Date(next.start) > Date.now() ? next : null);
-    return `${esc(a.head)}${a.tail ? " " + a.tail : ""}`;   // tail is already escaped
+    return tailOnly ? (a.tail || "") : `${esc(a.head)}${a.tail ? " " + a.tail : ""}`;   // tail is already escaped
   };
 
   // Evening from cfg.evening.from (default 17:00) until 4 am. ?evening=1 forces it for a look.

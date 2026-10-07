@@ -77,3 +77,12 @@ test("companion: Claude Code insight only appears when those widgets are on, and
   assert.deepEqual(suggest({ widgets: [{ ...cp, status: "error", error: "x" }], cfg: {}, now: monday }).map((x) => x.kind), ["broken"], "a broken widget is reported, never used as data");
   assert.equal(suggest({ widgets: [cp, left], cfg: {}, evening: true, today: { tomorrow: [] }, now: monday })[0].kind, "clear", "none of this in the evening");
 });
+
+test("companion: the routine stays on offer after noon until it is done, and the picker action has one name", () => {
+  const afternoon = new Date(2026, 8, 30, 14, 5).getTime();
+  const routine = widgets.find((x) => x.type === "routine");
+  const s = suggest({ widgets: [routine], cfg: {}, now: afternoon });
+  assert.deepEqual(s.map((x) => x.kind), ["routine"]);
+  const clear = suggest({ widgets: [], cfg: {}, now: afternoon });
+  assert.equal(clear[0].actions[0].label, "Just one thing");
+});

@@ -153,7 +153,7 @@ export function suggest({ widgets = [], cfg = {}, today = null, evening = false,
   if (next) {
     const m = Math.round((new Date(next.start) - now) / 60_000);
     if (m > 0 && m <= 15) add({ id: `event-${next.start}-now`, kind: "event", say: say("eventNow", char, { t: next.title, m, time: hm(next.start) }), actions: [{ label: "OK", act: "later" }] });
-    else if (m > 15 && m <= 90) add({ id: `event-${next.start}`, kind: "event", say: say("eventSoon", char, { t: next.title, m, time: hm(next.start) }), actions: [{ label: "Pick one thing", act: "pickFocus" }, LATER] });
+    else if (m > 15 && m <= 90) add({ id: `event-${next.start}`, kind: "event", say: say("eventSoon", char, { t: next.title, m, time: hm(next.start) }), actions: [{ label: "Just one thing", act: "pickFocus" }, LATER] });
   }
 
   const mailW = w("email");
@@ -167,7 +167,7 @@ export function suggest({ widgets = [], cfg = {}, today = null, evening = false,
   }
 
   const r = w("routine")?.routine;
-  if (r?.total && !r.complete && new Date(now).getHours() < 12) {
+  if (r?.total && !r.complete) {
     const step = r.rows.find((x) => !x.done);
     add({ id: "routine", kind: "routine", say: say("routine", char, { first: step.label, done: r.done, total: r.total }), actions: [{ label: step.target > 1 ? `+1 ${step.label.toLowerCase()}` : `Done: ${step.label.toLowerCase()}`, act: "routine", arg: step.id }, { label: "Show the list", act: "scroll", arg: "routine" }, LATER] });
   }
@@ -187,13 +187,13 @@ export function suggest({ widgets = [], cfg = {}, today = null, evening = false,
     if (quiet) {
       const n = Math.floor((now - quiet.lastTs) / 86_400_000), name = q(quiet.name, 30), l = left?.find((x) => x.name === quiet.name && x.prompt);
       if (l) add({ id: `claude-left-${quiet.name}`, kind: "claudeLeft", say: say("claudeLeft", char, { name, n, p: q(l.prompt, 90) }), actions: [{ label: "Pick it back up", act: "focus", arg: q(`Pick ${quiet.name} back up: ${l.prompt}`, 120) }, { label: "Show the list", act: "scroll", arg: "claudeleft" }, LATER] });
-      else add({ id: `claude-quiet-${quiet.name}`, kind: "claudeQuiet", say: say("claudeQuiet", char, { name, n }), actions: [left ? { label: "Where did I stop?", act: "scroll", arg: "claudeleft" } : { label: "Pick one thing", act: "pickFocus" }, LATER] });
+      else add({ id: `claude-quiet-${quiet.name}`, kind: "claudeQuiet", say: say("claudeQuiet", char, { name, n }), actions: [left ? { label: "Where did I stop?", act: "scroll", arg: "claudeleft" } : { label: "Just one thing", act: "pickFocus" }, LATER] });
     }
     const top = [...cp.rows].sort((a, b) => b.usd - a.usd)[0];
     if (new Date(now).getDay() === 1 && cp.usd >= 100 && top && top.usd / cp.usd >= 0.6) add({ id: "claude-spend", kind: "claudeSpend", say: say("claudeSpend", char, { name: q(top.name, 30), part: money(top.usd), total: money(cp.usd) }), actions: [{ label: "See the list", act: "scroll", arg: "claudeprojects" }, LATER] });
   }
 
-  if (!out.length) out.push({ id: "clear", kind: "clear", say: say("clear", char, {}), actions: [{ label: "Pick one thing", act: "pickFocus" }] });
+  if (!out.length) out.push({ id: "clear", kind: "clear", say: say("clear", char, {}), actions: [{ label: "Just one thing", act: "pickFocus" }] });
   return out;
 }
 

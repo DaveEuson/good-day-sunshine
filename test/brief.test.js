@@ -39,3 +39,15 @@ test("grounded: advice and numbers the page doesn't have are caught, honest rest
   assert.match(grounded("It will hit 45 degrees this afternoon.", data), /number 45/);
   assert.match(grounded("You should water it soon.", data), /advice/);
 });
+
+test("grounded: things shown elsewhere and numbers in words are checked too", async () => {
+  const { grounded, spokenNumbers, facts } = await import("../brief.js");
+  const data = "Weather: 36 clear, high 39.\nGitHub: 15 stars.";
+  assert.match(grounded("You still have four routine steps ahead.", data), /routine/);
+  assert.match(grounded("The sprout needs water.", data), /garden/);
+  assert.match(grounded("It will be about thirty-eight degrees.", data), /number 38/);
+  assert.equal(grounded("It is thirty-six and clear, with fifteen stars on GitHub.", data), null);
+  assert.deepEqual(spokenNumbers("one thing, twenty-two apples, forty and seven"), [22, 40, 7]);
+  const f = facts([{ type: "routine", status: "ok", title: "Morning routine", routine: { total: 5, done: 0, missing: ["Meds"], complete: false } }, { type: "garden", status: "ok", title: "Garden", garden: { plantView: { name: "Sprout", wateredToday: false }, streak: 3 } }]);
+  assert.equal(f, "", "the routine and the plant are not in the brief's facts");
+});

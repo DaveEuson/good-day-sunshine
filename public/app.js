@@ -699,7 +699,7 @@ async function load(refresh = false) {
   renderHero(data, user, () => { renderHero(data, user); loadBrief(); });
   $("#chat-model").textContent = data.chatModel;
   const mood = getMood(user);
-  const ready = data.widgets.filter((w) => w.status !== "setup" && !(mood === "rough" && w.type === "news")), pending = data.widgets.filter((w) => w.status === "setup"), broken = data.widgets.filter((w) => w.status === "error");
+  const ready = data.widgets.filter((w) => w.status !== "setup" && !(mood === "rough" && w.type === "news") && !(isEvening(data.config) && w.type === "routine")), pending = data.widgets.filter((w) => w.status === "setup"), broken = data.widgets.filter((w) => w.status === "error");
   $("#grid").innerHTML = ready.map(widget).join("");
   [...$("#grid").children].forEach((el, i) => el.style.setProperty("--i", i));
   if (!firstPaint) { firstPaint = true; $("#grid").classList.add("enter"); $("#hero-block").classList.add("enter"); setTimeout(() => { $("#grid").classList.remove("enter"); $("#hero-block").classList.remove("enter"); }, 1800); }

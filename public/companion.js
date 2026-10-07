@@ -24,14 +24,17 @@
     const mood = getMood(user);
     if (!evening && !mood && new Date().getHours() < 12 && !document.body.classList.contains("tv")) {
       return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div><p class="say">Morning, ${esc(cfg.name)}. ${esc(ASK[c] ?? ASK.sun)}</p>
-        <div class="c-actions">${MOODS.map(([id, l]) => `<button type="button" class="c-btn ghost" data-cmood="${id}">${l}</button>`).join("")}</div>
+        <div class="c-actions" role="group" aria-label="How are you feeling">${MOODS.map(([id, l]) => `<button type="button" class="c-btn ghost" data-cmood="${id}">${l}</button>`).join("")}</div>
         <button type="button" class="c-skip" data-cmood="skip">skip</button>`;
     }
-    const dayCtx = mood === "rough" ? "" : evening ? (data.today ? `${esc(data.today.headline)} ${esc(data.today.tail)}`.trim() : "") : (window.dayLine?.(data) ?? "");
-    const ctx = dayCtx ? `<p class="ctx">${dayCtx}</p>` : "";
+    // The day's line under the suggestion. When the suggestion already says "nothing needs you", only the weather/next event follows.
+    const ctxP = (tailOnly) => {
+      const t = mood === "rough" ? "" : evening ? (data.today ? `${esc(data.today.headline)} ${esc(data.today.tail)}`.trim() : "") : (window.dayLine?.(data, tailOnly) ?? "");
+      return t ? `<p class="ctx">${t}</p>` : "";
+    };
     const max = mood === "rough" ? 1 : mood === "meh" ? 2 : Infinity;
     const list = (data.companion ?? []).filter((s) => !later.has(s.id)).slice(0, max);
-    if (!list.length) return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div><p class="say">That's everything I'd suggest right now. Want to pick one thing anyway?</p><div class="c-actions"><button type="button" class="c-btn ghost" data-cact="pickFocus" data-carg="">Pick one thing</button></div>${ctx}`;
+    if (!list.length) return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div><p class="say">That's everything I'd suggest right now. Want to pick one thing anyway?</p><div class="c-actions"><button type="button" class="c-btn ghost" data-cact="pickFocus" data-carg="">Just one thing</button></div>${ctxP(true)}`;
     idx = idx % list.length;
     const s = list[idx];
     const ack = ackShown === mood && mood && ACK[mood] ? `<span class="ack">${esc(ACK[mood][c] ?? ACK[mood].sun)}</span> ` : "";
@@ -39,7 +42,7 @@
     return `<div class="who">${esc(NAMES[c] ?? "Sun")}</div>
       <p class="say">${ack}${esc(s.say)}</p>
       <div class="c-actions">${s.actions.map(btn).join("")}</div>
-      ${ctx}
+      ${ctxP(s.kind === "clear")}
       ${list.length > 1 ? `<button type="button" class="c-more" data-cnext>What else? <span>${idx + 1} of ${list.length}</span></button>` : ""}`;
   };
 
@@ -82,7 +85,8 @@
       const pk = e.target.closest("[data-pick]");
       if (pk) return startPicked(pickChoices[+pk.dataset.pick].task);
       const m = e.target.closest("[data-cmood]");
-      if (m) { const v = m.dataset.cmood === "skip" ? "okay" : m.dataset.cmood; setMood(user, v); ackShown = m.dataset.cmood === "skip" ? "" : v; idx = 0; rerender(); loadBrief?.(); return; }
+      if (m) { const v = m.dataset.cmood; setMood(user, v); ackShown = v === "skip" ? "" : v;   // skipping is recorded as skipping, not as "okay"
+       idx = 0; rerender(); loadBrief?.(); return; }
       if (e.target.closest("[data-cnext]")) { idx++; ackShown = ""; rerender(); SFX.tap?.(); return; }
       const b = e.target.closest("[data-cact]");
       if (!b) return;
