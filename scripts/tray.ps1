@@ -56,7 +56,7 @@ $tray.Visible = $true
 
 # good-morning moment: open the page once the server answers
 if ($prefs.openAtStart) {
-  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Milliseconds 300; try { Invoke-WebRequest "$url`api/users" -UseBasicParsing -TimeoutSec 1 | Out-Null; break } catch {} }
+  for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Milliseconds 300; try { Invoke-WebRequest "http://127.0.0.1:$port/api/users" -UseBasicParsing -TimeoutSec 3 | Out-Null; break } catch {} }
   Start-Process $url
 }
 $tray.ShowBalloonTip(2000, "Good Day Sunshine", "Running in the tray. Double-click to open.", "None")

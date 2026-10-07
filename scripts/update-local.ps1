@@ -33,8 +33,8 @@ Copy-Item (Join-Path $new "config\users\_template.json") (Join-Path $Dest "confi
 
 Write-Host "starting..."
 Start-Process powershell -ArgumentList "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $Dest 'scripts\tray.ps1')`"" -WindowStyle Hidden
-$ok = $false   # up to 3 minutes: a freshly written 90 MB exe is scanned by Defender before it starts
-for ($i = 0; $i -lt 360 -and -not $ok; $i++) { Start-Sleep -Milliseconds 500; if ($i -eq 40) { Write-Host "still starting (Windows is scanning the new exe)..." }; try { Invoke-WebRequest "http://localhost:4242/api/users" -UseBasicParsing -TimeoutSec 1 | Out-Null; $ok = $true } catch {} }
-if (-not $ok) { Write-Warning "Updated. The server has not answered yet (Windows scans a new exe before it starts); give it a minute, then open http://localhost:4242."; exit 0 }
+$ok = $false   # up to ~1 minute
+for ($i = 0; $i -lt 60 -and -not $ok; $i++) { Start-Sleep -Milliseconds 500; try { Invoke-WebRequest "http://127.0.0.1:4242/api/users" -UseBasicParsing -TimeoutSec 3 | Out-Null; $ok = $true } catch {} }
+if (-not $ok) { Write-Warning "Updated. The server has not answered yet (it normally takes a few seconds); give it a moment, then open http://localhost:4242."; exit 0 }
 $mb = [math]::Round((Get-Item (Join-Path $Dest "GoodDaySunshine.exe")).Length / 1MB, 1)
 Write-Host "updated $Dest ($mb MB). Running at http://localhost:4242. Your data was left alone."
